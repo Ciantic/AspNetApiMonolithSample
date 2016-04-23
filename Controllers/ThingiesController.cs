@@ -33,9 +33,9 @@ namespace AspNetApiMonolithSample
         }
 
         [HttpPost("[action]")]
-        public async Task<IActionResult> GetById([FromBody] GetByIdAction byId)
+        public async Task<Thingie> GetById([FromBody] GetByIdAction byId)
         {
-            return new OkObjectResult(await thingies.FindByIdAsync(byId.Id));
+            return await thingies.FindByIdAsync(byId.Id);
         }
 
         public class StoreThingie
@@ -45,9 +45,9 @@ namespace AspNetApiMonolithSample
         }
 
         [HttpPost("[action]")]
-        public IActionResult Store([FromBody] StoreThingie store)
+        public Thingie Store([FromBody] StoreThingie store)
         {
-            return new OkObjectResult(store.Thingie);
+            return store.Thingie;
         }
     }
 }

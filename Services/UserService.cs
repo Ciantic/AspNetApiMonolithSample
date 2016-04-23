@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Threading.Tasks;
 using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity;
@@ -36,6 +37,14 @@ namespace AspNetApiMonolithSample.Services
                 return user;
             }
             return null;
+        }
+        
+        public async Task<User> LoggedInAsync(ClaimsPrincipal p) {
+            return await _userManager.GetUserAsync(p);
+        }
+        
+        public async Task LogoutAsync() {
+            await _signInManager.SignOutAsync();
         }
     }
 }

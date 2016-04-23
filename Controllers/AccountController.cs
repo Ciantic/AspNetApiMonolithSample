@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using AspNetApiMonolithSample.Services;
 using AspNetApiMonolithSample.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AspNetApiMonolithSample
 {
@@ -34,23 +35,44 @@ namespace AspNetApiMonolithSample
         }
 
         [HttpPost("[action]")]
-        public async Task<IActionResult> Login([FromBody] LoginAction loginDetails)
+        public async Task<LoginResult> Login([FromBody] LoginAction loginDetails)
         {
             var res = await _userService.LoginAsync(loginDetails.Email, loginDetails.PasswordPlain);
             if (res == null)
             {
-                return new NotAuthorizedResult();
+                throw new NotAuthorizedResult().Exception();
             }
 
-            return new OkObjectResult(new LoginResult
+            return new LoginResult
             {
                 Id = res.Id
-            });
+            };
+        }
+        
+        public class LoggedInResult
+        {
+            public int Id { get; set; } = 0;
+            public string Email {get; set; } = "";
+        }
+        
+        [Authorize]
+        [HttpPost("[action]")]
+        public async Task<LoggedInResult> LoggedIn() {
+            var loggedInUser = await _userService.LoggedInAsync(HttpContext.User);
+            if (loggedInUser == null) {
+                throw new NotAuthorizedResult().Exception();
+            }
+        
+            return new LoggedInResult {
+                Id = loggedInUser.Id,
+                Email = loggedInUser.Email,
+            };
         }
 
         [HttpPost("[action]")]
-        public bool Logout()
+        public async Task<bool> Logout()
         {
+            await _userService.LogoutAsync();
             return true;
         }
     }
