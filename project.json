@@ -17,6 +17,7 @@
         "Microsoft.EntityFrameworkCore.Commands": "1.0.0-*",
         "Microsoft.EntityFrameworkCore.SqlServer": "1.0.0-*",
         "Microsoft.EntityFrameworkCore.SQLite": "1.0.0-*",
+        "Microsoft.AspNetCore.DataProtection.Extensions": "1.0.0-*",
         "Microsoft.AspNetCore.Identity": "1.0.0-*",
         "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "1.0.0-*",
         "Microsoft.AspNetCore.Authentication.Cookies": "1.0.0-*",

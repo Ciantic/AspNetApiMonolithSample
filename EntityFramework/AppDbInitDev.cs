@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity;
 
@@ -14,16 +17,15 @@ namespace AspNetApiMonolithSample.EntityFramework
             this.userManager = userManager;
         }
 
-        public void Init()
+        public async Task InitAsync()
         {
-            db.Database.EnsureCreated();
-            var u = new User
+            await db.Database.EnsureCreatedAsync();
+            await userManager.CreateAsync(new User
             {
                 Email = "test@example.com",
                 UserName = "test",
-            };
-            db.Add(u);
-
+            }, "!Test1");
+            
             db.Add(new Thingie
             {
                 Name = "Thingie one",
@@ -32,9 +34,7 @@ namespace AspNetApiMonolithSample.EntityFramework
             {
                 Name = "Hello",
             });
-            db.SaveChanges();
-            // userManager.AddLoginAsync(u, new UserLoginInfo("password", "password", "password")).Wait();
-            // userManager.AddPasswordAsync(u, "testi123").Wait();
+            await db.SaveChangesAsync();
         }
     }
 }

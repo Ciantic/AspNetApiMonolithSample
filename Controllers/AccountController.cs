@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using AspNetApiMonolithSample.Services;
+using AspNetApiMonolithSample.Mvc;
 
 namespace AspNetApiMonolithSample
 {
@@ -38,7 +39,7 @@ namespace AspNetApiMonolithSample
             var res = await _userService.LoginAsync(loginDetails.Email, loginDetails.PasswordPlain);
             if (res == null)
             {
-                return new BadRequestObjectResult("LOGIN FAILED");
+                return new NotAuthorizedResult();
             }
 
             return new OkObjectResult(new LoginResult

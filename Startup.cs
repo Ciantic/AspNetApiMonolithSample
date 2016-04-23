@@ -12,6 +12,7 @@ using Microsoft.Data.Sqlite;
 using AspNetApiMonolithSample.Mvc;
 using AspNetApiMonolithSample.Stores;
 using AspNetApiMonolithSample.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace AspNetApiMonolithSample
 {
@@ -49,6 +50,9 @@ namespace AspNetApiMonolithSample
             });
 
             services.AddIdentity<User, Role>(options => {
+                options.Cookies.ApplicationCookie.AutomaticChallenge = true;
+                options.Cookies.ApplicationCookie.AutomaticAuthenticate = true;
+                options.Cookies.ApplicationCookie.DataProtectionProvider = DataProtectionProvider.Create("AspNetApiMonolithSample");
                 options.Cookies.ApplicationCookie.AuthenticationScheme = "ApplicationCookie";
                 options.Cookies.ApplicationCookie.CookieName = "AspNetApiMonolithSample";
             })
@@ -67,15 +71,15 @@ namespace AspNetApiMonolithSample
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
             loggerFactory.AddConsole(LogLevel.Debug);
+            app.UseIdentity(); // Ordering matters, Identity must come first
             app.UseMvcWithDefaultRoute();
-            app.UseIdentity();
-            app.ApplicationServices.GetService<IInitDatabase>().Init();
+            app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
         public static void Main(string[] args)
         {
             var host = new WebHostBuilder()
                 .UseKestrel()
-                .UseContentRoot(Directory.GetCurrentDirectory())
+                // .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseDefaultHostingConfiguration(args)
                 .UseIISIntegration()
                 .UseStartup<Startup>()

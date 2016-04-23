@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,11 @@ namespace AspNetApiMonolithSample.Mvc
             Data = Data
         }) {
             StatusCode = StatusCodes.Status400BadRequest;
+        }
+        
+        // Helper for ApiException
+        public ApiException Exception() {
+            return new ApiException(this);
         }
     }
     
@@ -31,6 +37,12 @@ namespace AspNetApiMonolithSample.Mvc
     public class NotFoundResult: ApiErrorResult {
         public NotFoundResult() : base("NOT_FOUND") {
             StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+    
+    public class NotAuthorizedResult: ApiErrorResult {
+        public NotAuthorizedResult() : base("NOT_AUTHORIZED") {
+            StatusCode = StatusCodes.Status403Forbidden;
         }
     }
 }

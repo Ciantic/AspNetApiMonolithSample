@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace AspNetApiMonolithSample.EntityFramework
 {
     public class AppDbInitProd : IInitDatabase
@@ -9,8 +11,9 @@ namespace AspNetApiMonolithSample.EntityFramework
             db = _db;
         }
 
-        public void Init()
+        public Task InitAsync()
         {
+            return Task.FromResult(0);
             // TODO: Migrations
             // TODO: Validate schema
         }

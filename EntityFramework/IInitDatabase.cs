@@ -1,7 +1,9 @@
+using System.Threading.Tasks;
+
 namespace AspNetApiMonolithSample.EntityFramework
 {
     public interface IInitDatabase
     {
-        void Init();
+        Task InitAsync();
     }
 }
