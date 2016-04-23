@@ -1,0 +1,45 @@
+{
+    "compilationOptions": {
+        "emitEntryPoint": true,
+        "debugType": "portable",
+        "preserveCompilationContext": true
+    },
+    "content": [
+        "appsettings.json"
+    ],
+    "dependencies": {
+        "Microsoft.Extensions.Logging.Console": "1.0.0-*",
+        "Microsoft.AspNetCore.Server.IISIntegration": "1.0.0-*",
+        "Microsoft.AspNetCore.Mvc.Core": "1.0.0-*",
+        "Microsoft.AspNetCore.Mvc.Formatters.Json": "1.0.0-*",
+        "Microsoft.AspNetCore.Mvc.DataAnnotations": "1.0.0-*",
+        "Microsoft.AspNetCore.Server.Kestrel": "1.0.0-*",
+        "Microsoft.EntityFrameworkCore.Commands": "1.0.0-*",
+        "Microsoft.EntityFrameworkCore.SqlServer": "1.0.0-*",
+        "Microsoft.EntityFrameworkCore.SQLite": "1.0.0-*",
+        "Microsoft.AspNetCore.Identity": "1.0.0-*",
+        "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "1.0.0-*",
+        "Microsoft.AspNetCore.Authentication.Cookies": "1.0.0-*",
+        "Microsoft.AspNetCore.Authorization": "1.0.0-*",
+        "Microsoft.NETCore.App": "1-*"
+    },
+    "frameworks": {
+        "netcoreapp1.0": {
+            "imports": [
+                "portable-net45+wp80+win8+wpa81+dnxcore50",
+                "portable-net45+win8+wp8+wpa81",
+                "portable-net45+win8+wp8"
+            ]
+        }
+    },
+    "runtimes": {
+        "win81-x64": {}
+    },
+    "tools": {
+        "dotnet-watch": {
+            "version": "1.0.0-*",
+            "imports": "portable-net451+win8"
+        }
+    },
+    "version": "1.0.0"
+}

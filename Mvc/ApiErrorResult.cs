@@ -1,0 +1,36 @@
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
+namespace AspNetApiMonolithSample.Mvc
+{
+    abstract public class ApiErrorResult: ObjectResult {
+        
+        protected ApiErrorResult(string name, object Data = null) : base(new {
+            Error = name,
+            Data = Data
+        }) {
+            StatusCode = StatusCodes.Status400BadRequest;
+        }
+    }
+    
+    public class ValidationErrorResult: ApiErrorResult {
+        public ValidationErrorResult(ModelStateDictionary modelState): 
+            base("VALIDATION_ERROR", new {
+                Fields = modelState.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                )
+            })
+        {
+            
+        }
+    }
+    
+    public class NotFoundResult: ApiErrorResult {
+        public NotFoundResult() : base("NOT_FOUND") {
+            StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}
