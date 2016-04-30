@@ -4,76 +4,163 @@ using System.ComponentModel.DataAnnotations;
 using AspNetApiMonolithSample.Services;
 using AspNetApiMonolithSample.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using AspNetApiMonolithSample.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace AspNetApiMonolithSample
 {
+    [Authorize]
     [Route("[controller]")]
     public class AccountController : ControllerBase
     {
-        private readonly UserService _userService;
+        private readonly UserManager<User> _userManager;
 
-        public AccountController(UserService userService)
+        private readonly SignInManager<User> _signInManager;
+
+        private readonly ILogger _logger;
+
+        public AccountController(
+            UserManager<User> userManager,
+            SignInManager<User> signInManager,
+            ILoggerFactory loggerFactory)
         {
-            _userService = userService;
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _logger = loggerFactory.CreateLogger<AccountController>();
         }
-
-        public class LoginAction
+        
+        public class RegisterAction
         {
-            [Required]
-            [MinLength(5)]
-            [EmailAddress]
             public string Email { get; set; } = "";
-
-            [Required]
-            [MinLength(5)]
-            public string PasswordPlain { get; set; } = "";
+            public string Password { get; set; } = "";
         }
-
-        public class LoginResult
-        {
-            public int Id { get; set; }
-        }
-
+        
         [HttpPost("[action]")]
-        public async Task<LoginResult> Login([FromBody] LoginAction loginDetails)
+        [AllowAnonymous]
+        public async Task<bool> Register([FromBody] RegisterAction action)
         {
-            var res = await _userService.LoginAsync(loginDetails.Email, loginDetails.PasswordPlain);
-            if (res == null)
+            var user = new User { UserName = action.Email, Email = action.Email };
+            var result = await _userManager.CreateAsync(user, action.Password);
+            if (result.Succeeded)
             {
-                throw new NotAuthorizedResult().Exception();
+                // For more information on how to enable account confirmation and password reset please visit http://go.microsoft.com/fwlink/?LinkID=532713
+                // Send an email with this link
+                //var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                //var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: HttpContext.Request.Scheme);
+                //await _emailSender.SendEmailAsync(model.Email, "Confirm your account",
+                //    "Please confirm your account by clicking this link: <a href=\"" + callbackUrl + "\">link</a>");
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                _logger.LogInformation(3, "User created a new account with password.");
+                return true;
             }
-
-            return new LoginResult
-            {
-                Id = res.Id
-            };
+            return false;
         }
         
         public class LoggedInResult
         {
             public int Id { get; set; } = 0;
-            public string Email {get; set; } = "";
-        }
-        
-        [Authorize]
-        [HttpPost("[action]")]
-        public async Task<LoggedInResult> LoggedIn() {
-            var loggedInUser = await _userService.LoggedInAsync(HttpContext.User);
-            if (loggedInUser == null) {
-                throw new NotAuthorizedResult().Exception();
-            }
-        
-            return new LoggedInResult {
-                Id = loggedInUser.Id,
-                Email = loggedInUser.Email,
-            };
+
+            public string Email { get; set; } = "";
+
         }
 
         [HttpPost("[action]")]
-        public async Task<bool> Logout()
+        public async Task<LoggedInResult> LoggedIn()
         {
-            await _userService.LogoutAsync();
+            var loggedInUser = await _userManager.GetUserAsync(HttpContext.User);
+            if (loggedInUser == null)
+            {
+                throw new NotAuthorizedResult().Exception();
+            }
+            return new LoggedInResult
+            {
+                Id = loggedInUser.Id,
+                Email = loggedInUser.Email
+            };
+        }
+
+        public class ChangePasswordAction
+        {
+            public string CurrentPassword { get; set; } = "";
+
+            public string NewPassword { get; set; } = "";
+        }
+
+        [HttpPost("[action]")]
+        public async Task<bool> ChangePassword([FromBody] ChangePasswordAction action)
+        {
+            var loggedInUser = await _userManager.GetUserAsync(HttpContext.User);
+            if (loggedInUser == null)
+            {
+                throw new NotAuthorizedResult().Exception();
+            }
+            var res = await _userManager.ChangePasswordAsync(loggedInUser, action.CurrentPassword, action.NewPassword);
+            return res.Succeeded;
+        }
+
+        public class ResetPasswordAction
+        {
+            public string Email { get; set; } = "";
+            public string Code { get; set; } = "";
+            public string NewPassword { get; set; } = "";
+        }
+
+        [HttpPost("[action]")]
+        [AllowAnonymous]
+        public async Task<bool> ResetPassword([FromBody] ResetPasswordAction action)
+        {
+            var user = await _userManager.FindByNameAsync(action.Email);
+            if (user == null)
+            {
+                // Don't reveal that the user does not exist
+                return true;
+            }
+
+            var result = await _userManager.ResetPasswordAsync(user, action.Code, action.NewPassword);
             return true;
         }
+
+        public class ForgotPasswordAction
+        {
+            public string Email { get; set; } = "";
+        }
+
+        [HttpPost("[action]")]
+        [AllowAnonymous]
+        public async Task<bool> ForgotPassword([FromBody] ForgotPasswordAction action)
+        {
+            var user = await _userManager.FindByEmailAsync(action.Email);
+            if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+            {
+                // Don't reveal that the user does not exist or is not confirmed
+                return true;
+            }
+            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            return true;
+        }
+
+        public class ConfirmEmailAction
+        {
+            public string Email { get; set; } = "";
+            public string Code { get; set; } = "";
+        }
+
+        [HttpPost("[action]")]
+        [AllowAnonymous]
+        public async Task<bool> ConfirmEmail([FromBody] ConfirmEmailAction action)
+        {
+            var user = await _userManager.FindByEmailAsync(action.Email);
+            if (user == null)
+            {
+                return false;
+            }
+            
+            var result = await _userManager.ConfirmEmailAsync(user, action.Code);
+            return result.Succeeded;
+        }
+
     }
 }

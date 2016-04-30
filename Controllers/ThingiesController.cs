@@ -2,12 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using AspNetApiMonolithSample.Models;
 using AspNetApiMonolithSample.Stores;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AspNetApiMonolithSample
 {
+    [Authorize]
     [Route("[controller]")]
-    public class ThingiesController
+    public class ThingiesController : ControllerBase
     {
         private readonly IThingieStore thingies;
 

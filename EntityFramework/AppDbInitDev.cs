@@ -23,7 +23,7 @@ namespace AspNetApiMonolithSample.EntityFramework
             await userManager.CreateAsync(new User
             {
                 Email = "test@example.com",
-                UserName = "test",
+                UserName = "test@example.com",
             }, "!Test1");
             
             db.Add(new Thingie

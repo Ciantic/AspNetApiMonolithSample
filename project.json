@@ -8,21 +8,30 @@
         "appsettings.json"
     ],
     "dependencies": {
+        "Microsoft.NETCore.App": "1-*",
         "Microsoft.Extensions.Logging.Console": "1.0.0-*",
+        "Microsoft.Extensions.Configuration.EnvironmentVariables": "1.0.0-*",
+        "Microsoft.Extensions.Configuration.Json": "1.0.0-*",
         "Microsoft.AspNetCore.Server.IISIntegration": "1.0.0-*",
         "Microsoft.AspNetCore.Mvc.Core": "1.0.0-*",
         "Microsoft.AspNetCore.Mvc.Formatters.Json": "1.0.0-*",
         "Microsoft.AspNetCore.Mvc.DataAnnotations": "1.0.0-*",
+        "Microsoft.AspNetCore.Mvc.ApiExplorer": "1.0.0-*",
+        "Microsoft.AspNetCore.Cors": "1.0.0-*",
         "Microsoft.AspNetCore.Server.Kestrel": "1.0.0-*",
-        "Microsoft.EntityFrameworkCore.Commands": "1.0.0-*",
-        "Microsoft.EntityFrameworkCore.SqlServer": "1.0.0-*",
-        "Microsoft.EntityFrameworkCore.SQLite": "1.0.0-*",
         "Microsoft.AspNetCore.DataProtection.Extensions": "1.0.0-*",
         "Microsoft.AspNetCore.Identity": "1.0.0-*",
         "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "1.0.0-*",
         "Microsoft.AspNetCore.Authentication.Cookies": "1.0.0-*",
+        "Microsoft.AspNetCore.Authentication.JwtBearer": "1.0.0-*",
         "Microsoft.AspNetCore.Authorization": "1.0.0-*",
-        "Microsoft.NETCore.App": "1-*"
+        "Microsoft.EntityFrameworkCore.Commands": "1.0.0-*",
+        "Microsoft.EntityFrameworkCore.SqlServer": "1.0.0-*",
+        "Microsoft.EntityFrameworkCore.SQLite": "1.0.0-*",
+        "OpenIddict.Core": "1.0.0-*",
+        "OpenIddict.EF": "1.0.0-*",
+        "Swashbuckle.SwaggerGen": "6.0.0-rc2",
+        "Swashbuckle.SwaggerUi": "6.0.0-rc2"
     },
     "frameworks": {
         "netcoreapp1.0": {
@@ -37,7 +46,7 @@
         "win81-x64": {}
     },
     "tools": {
-        "dotnet-watch": {
+        "Microsoft.DotNet.Watcher.Tools": {
             "version": "1.0.0-*",
             "imports": "portable-net451+win8"
         }

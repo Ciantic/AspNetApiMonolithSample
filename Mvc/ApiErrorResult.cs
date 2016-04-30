@@ -42,7 +42,7 @@ namespace AspNetApiMonolithSample.Mvc
     
     public class NotAuthorizedResult: ApiErrorResult {
         public NotAuthorizedResult() : base("NOT_AUTHORIZED") {
-            StatusCode = StatusCodes.Status403Forbidden;
+            StatusCode = StatusCodes.Status401Unauthorized;
         }
     }
 }
