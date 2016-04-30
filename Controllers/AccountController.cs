@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
-using AspNetApiMonolithSample.Services;
 using AspNetApiMonolithSample.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;

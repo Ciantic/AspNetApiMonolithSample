@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
 using AspNetApiMonolithSample.Mvc;
 using AspNetApiMonolithSample.Stores;
-using AspNetApiMonolithSample.Services;
 using OpenIddict.Models;
 using Swashbuckle.SwaggerGen.Generator;
 using System.Collections.Generic;
@@ -82,7 +81,6 @@ namespace AspNetApiMonolithSample
             // TODO: IF DEV ENV:
             services.AddTransient<IInitDatabase, AppDbInitDev>();
             // services.AddTransient<IInitDatabase, AppDbInitProd>();
-            services.AddTransient<UserService>();
             services.AddTransient<IThingieStore, ThingieStore>();
         }
         
