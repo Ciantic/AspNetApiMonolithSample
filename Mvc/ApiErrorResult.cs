@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +29,14 @@ namespace AspNetApiMonolithSample.Mvc
                     kvp => kvp.Key,
                     kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
                 )
+            })
+        {
+            
+        }
+        
+        public ValidationErrorResult(IEnumerable<String> messages): 
+            base("VALIDATION_ERROR", new {
+                Messages = messages
             })
         {
             

@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using AspNetApiMonolithSample.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace AspNetApiMonolithSample
 {
@@ -29,13 +29,18 @@ namespace AspNetApiMonolithSample
             _signInManager = signInManager;
             _logger = loggerFactory.CreateLogger<AccountController>();
         }
-        
+
         public class RegisterAction
         {
+            [EmailAddress]
+            [Required]
             public string Email { get; set; } = "";
+            
+            [Required]
+            [MinLength(6)]
             public string Password { get; set; } = "";
         }
-        
+
         [HttpPost("[action]")]
         [AllowAnonymous]
         public async Task<bool> Register([FromBody] RegisterAction action)
@@ -50,13 +55,15 @@ namespace AspNetApiMonolithSample
                 //var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: HttpContext.Request.Scheme);
                 //await _emailSender.SendEmailAsync(model.Email, "Confirm your account",
                 //    "Please confirm your account by clicking this link: <a href=\"" + callbackUrl + "\">link</a>");
-                await _signInManager.SignInAsync(user, isPersistent: false);
                 _logger.LogInformation(3, "User created a new account with password.");
                 return true;
             }
-            return false;
+            else
+            {
+                throw new ValidationErrorResult(result.Errors.Select(e => e.Description).ToList()).Exception();
+            }
         }
-        
+
         public class LoggedInResult
         {
             public int Id { get; set; } = 0;
@@ -156,7 +163,7 @@ namespace AspNetApiMonolithSample
             {
                 return false;
             }
-            
+
             var result = await _userManager.ConfirmEmailAsync(user, action.Code);
             return result.Succeeded;
         }

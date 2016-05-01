@@ -19,50 +19,62 @@ namespace AspNetApiMonolithSample
     public class Startup
     {
         private SqliteConnection inMemorySqliteConnection;
-        
+
         public IConfigurationRoot Configuration { get; set; }
-        
-        public Startup(IHostingEnvironment env) {
+
+        private IHostingEnvironment env;
+
+        public Startup(IHostingEnvironment env)
+        {
+            this.env = env;
             var builder = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json")
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
             builder.AddEnvironmentVariables();
             Configuration = builder.Build();
         }
-        
+
         public void ConfigureServices(IServiceCollection services)
         {
-            inMemorySqliteConnection = new SqliteConnection("Data Source=:memory:");
-            inMemorySqliteConnection.Open();
-            
             // Ordering matters, Identity first, then MvcCore and then Authorization
-            
             services.AddCors();
-            
-            services.AddDbContext<AppDbContext>(options => {
-                // options.UseSqlServer(Configuration["Data:DefaultConnection:ConnectionString"]);
-                options.UseSqlite(inMemorySqliteConnection);
+
+            services.AddDbContext<AppDbContext>(options =>
+            {
+                if (env.IsDevelopment())
+                {
+                    inMemorySqliteConnection = new SqliteConnection("Data Source=:memory:");
+                    inMemorySqliteConnection.Open();
+                    options.UseSqlite(inMemorySqliteConnection);
+                }
+                else if (env.IsProduction())
+                {
+                    options.UseSqlServer(Configuration["Data:DefaultConnection:ConnectionString"]);
+                }
             });
-            
+
             services.AddIdentity<User, Role>()
                 .AddEntityFrameworkStores<AppDbContext, int>()
                 .AddDefaultTokenProviders()
-                .AddOpenIddictCore<Application<int>>(c => {
+                .AddOpenIddictCore<Application<int>>(c =>
+                {
                     c.UseEntityFramework();
                 });
-                
-            services.AddMvcCore(opts => {
-                    opts.Filters.Add(new ModelStateValidationFilter());
-                    opts.Filters.Add(new NullValidationFilter());
-                    opts.Filters.Add(new ApiExceptionFilter());
-                })
+
+            services.AddMvcCore(opts =>
+            {
+                opts.Filters.Add(new ModelStateValidationFilter());
+                opts.Filters.Add(new NullValidationFilter());
+                opts.Filters.Add(new ApiExceptionFilter());
+            })
                 .AddApiExplorer()
                 .AddAuthorization()
                 .AddDataAnnotations()
                 .AddFormatterMappings()
                 .AddJsonFormatters();
-                
-            services.AddSwaggerGen(opts => {
+
+            services.AddSwaggerGen(opts =>
+            {
                 opts.AddSecurityDefinition("oauth2", new OAuth2Scheme
                 {
                     Type = "oauth2",
@@ -78,41 +90,60 @@ namespace AspNetApiMonolithSample
                 });
             });
 
-            // TODO: IF DEV ENV:
-            services.AddTransient<IInitDatabase, AppDbInitDev>();
-            // services.AddTransient<IInitDatabase, AppDbInitProd>();
+            if (env.IsDevelopment())
+            {
+                services.AddTransient<IInitDatabase, AppDbInitDev>();
+            }
+            else if (env.IsProduction())
+            {
+                services.AddTransient<IInitDatabase, AppDbInitProd>();
+            }
+            
             services.AddTransient<IThingieStore, ThingieStore>();
         }
-        
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            
-            if (env.IsDevelopment()) {
-                app.UseCors(builder => {
+            if (env.IsDevelopment())
+            {
+                app.UseCors(builder =>
+                {
                     builder.AllowAnyOrigin();
                 });
             }
-            
+
             loggerFactory.AddConsole(LogLevel.Debug);
             app.UseOpenIddictCore(builder =>
             {
-                // tell openiddict you're wanting to use jwt tokens
                 builder.Options.UseJwtTokens();
-                // NOTE: for dev consumption only! for live, this is not encouraged!
-                builder.Options.AllowInsecureHttp = true;
+
+                if (env.IsDevelopment())
+                {
+                    builder.Options.AllowInsecureHttp = true;
+                }
+
                 builder.Options.ApplicationCanDisplayErrors = true;
+
+                // Disable all endpoints except Token endpoint
+                // Token endpoint still requires ConfigurationEndpointPath
+                // and CryptographyEndpointPath to function normally
+
+                builder.Options.AuthorizationEndpointPath = null;
+                builder.Options.IntrospectionEndpointPath = null;
+                builder.Options.LogoutEndpointPath = null;
+                builder.Options.UserinfoEndpointPath = null;
             });
- 
+
             // use jwt bearer authentication
-            app.UseJwtBearerAuthentication(new JwtBearerOptions() {
+            app.UseJwtBearerAuthentication(new JwtBearerOptions()
+            {
                 AutomaticAuthenticate = true,
                 AutomaticChallenge = true,
                 RequireHttpsMetadata = false,
                 Audience = "http://localhost:5000/",
                 Authority = "http://localhost:5000/",
-            }); 
-            
+            });
+
             app.UseMvc();
             app.UseSwaggerGen();
             app.UseSwaggerUi();
