@@ -13,6 +13,7 @@ using AspNetApiMonolithSample.Stores;
 using OpenIddict.Models;
 using Swashbuckle.SwaggerGen.Generator;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 
 namespace AspNetApiMonolithSample
 {
@@ -79,7 +80,7 @@ namespace AspNetApiMonolithSample
                 {
                     Type = "oauth2",
                     Flow = "password",
-                    TokenUrl = "http://localhost:5000/connect/token"
+                    TokenUrl = Configuration["Api:Url"] + "connect/token"
                     /*,
                     Scopes = new Dictionary<string, string>
                         {
@@ -121,17 +122,19 @@ namespace AspNetApiMonolithSample
                 {
                     builder.Options.AllowInsecureHttp = true;
                 }
+                
 
                 builder.Options.ApplicationCanDisplayErrors = true;
 
-                // Disable all endpoints except Token endpoint
-                // Token endpoint still requires ConfigurationEndpointPath
-                // and CryptographyEndpointPath to function normally
-
-                builder.Options.AuthorizationEndpointPath = null;
-                builder.Options.IntrospectionEndpointPath = null;
-                builder.Options.LogoutEndpointPath = null;
-                builder.Options.UserinfoEndpointPath = null;
+                // ConfigurationEndpointPath and AuthorizationEndpointPath has well-known uris, need not to be ovewritten
+                
+                builder.Options.TokenEndpointPath = new PathString(Configuration["OpenIddict:TokenEndpointPath"]);
+                builder.Options.CryptographyEndpointPath = new PathString(Configuration["OpenIddict:CryptographyEndpointPath"]);
+                builder.Options.IntrospectionEndpointPath = new PathString(Configuration["OpenIddict:IntrospectionEndpointPath"]);
+                builder.Options.LogoutEndpointPath = new PathString(Configuration["OpenIddict:LogoutEndpointPath"]);
+                builder.Options.UserinfoEndpointPath = new PathString(Configuration["OpenIddict:UserinfoEndpointPath"]);
+                
+                
             });
 
             // use jwt bearer authentication
@@ -140,8 +143,8 @@ namespace AspNetApiMonolithSample
                 AutomaticAuthenticate = true,
                 AutomaticChallenge = true,
                 RequireHttpsMetadata = false,
-                Audience = "http://localhost:5000/",
-                Authority = "http://localhost:5000/",
+                Audience = Configuration["Jwt:Audience"],
+                Authority = Configuration["Jwt:Authority"],
             });
 
             app.UseMvc();
