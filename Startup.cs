@@ -80,10 +80,11 @@ namespace AspNetApiMonolithSample
                     Flow = "password",
                     TokenUrl = Configuration["Api:Url"] + "connect/token"
                     /*,
+                    // Add scopes only if you have 3rd-party applications that need scopes
                     Scopes = new Dictionary<string, string>
                         {
-                            { "offline_access", "offline access" }//,
-                            //{ "write", "write access" }
+                            { "read", "read access" },
+                            { "write", "write access" }
                         }
                     */
                 });
