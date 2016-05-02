@@ -12,8 +12,6 @@ using AspNetApiMonolithSample.Mvc;
 using AspNetApiMonolithSample.Stores;
 using OpenIddict.Models;
 using Swashbuckle.SwaggerGen.Generator;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Http;
 
 namespace AspNetApiMonolithSample
 {
@@ -127,12 +125,11 @@ namespace AspNetApiMonolithSample
                 builder.Options.ApplicationCanDisplayErrors = true;
 
                 // ConfigurationEndpointPath and AuthorizationEndpointPath has well-known uris, need not to be ovewritten
-                
-                builder.Options.TokenEndpointPath = new PathString(Configuration["OpenIddict:TokenEndpointPath"]);
-                builder.Options.CryptographyEndpointPath = new PathString(Configuration["OpenIddict:CryptographyEndpointPath"]);
-                builder.Options.IntrospectionEndpointPath = new PathString(Configuration["OpenIddict:IntrospectionEndpointPath"]);
-                builder.Options.LogoutEndpointPath = new PathString(Configuration["OpenIddict:LogoutEndpointPath"]);
-                builder.Options.UserinfoEndpointPath = new PathString(Configuration["OpenIddict:UserinfoEndpointPath"]);
+                builder.Options.TokenEndpointPath = Configuration["OpenIddict:TokenEndpointPath"];
+                builder.Options.CryptographyEndpointPath = Configuration["OpenIddict:CryptographyEndpointPath"];
+                builder.Options.IntrospectionEndpointPath = Configuration["OpenIddict:IntrospectionEndpointPath"];
+                builder.Options.LogoutEndpointPath = Configuration["OpenIddict:LogoutEndpointPath"];
+                builder.Options.UserinfoEndpointPath = Configuration["OpenIddict:UserinfoEndpointPath"];
                 
                 
             });
