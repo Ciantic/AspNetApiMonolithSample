@@ -121,7 +121,6 @@ namespace AspNetApiMonolithSample
                     builder.Options.AllowInsecureHttp = true;
                 }
                 
-
                 builder.Options.ApplicationCanDisplayErrors = true;
 
                 // ConfigurationEndpointPath and AuthorizationEndpointPath has well-known uris, need not to be ovewritten
@@ -130,11 +129,9 @@ namespace AspNetApiMonolithSample
                 builder.Options.IntrospectionEndpointPath = Configuration["OpenIddict:IntrospectionEndpointPath"];
                 builder.Options.LogoutEndpointPath = Configuration["OpenIddict:LogoutEndpointPath"];
                 builder.Options.UserinfoEndpointPath = Configuration["OpenIddict:UserinfoEndpointPath"];
-                
-                
             });
 
-            // use jwt bearer authentication
+            // use JWT bearer authentication
             app.UseJwtBearerAuthentication(new JwtBearerOptions()
             {
                 AutomaticAuthenticate = true,
