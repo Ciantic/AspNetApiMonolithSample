@@ -46,7 +46,7 @@ namespace AspNetApiMonolithSample
                     inMemorySqliteConnection.Open();
                     options.UseSqlite(inMemorySqliteConnection);
                 }
-                else if (env.IsProduction())
+                else 
                 {
                     options.UseSqlServer(Configuration.GetOrFail("Data:DefaultConnection:ConnectionString"));
                 }
@@ -94,7 +94,7 @@ namespace AspNetApiMonolithSample
             {
                 services.AddTransient<IInitDatabase, AppDbInitDev>();
             }
-            else if (env.IsProduction())
+            else
             {
                 services.AddTransient<IInitDatabase, AppDbInitProd>();
             }
