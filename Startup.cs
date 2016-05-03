@@ -48,7 +48,7 @@ namespace AspNetApiMonolithSample
                 }
                 else if (env.IsProduction())
                 {
-                    options.UseSqlServer(Configuration["Data:DefaultConnection:ConnectionString"]);
+                    options.UseSqlServer(Configuration.GetOrFail("Data:DefaultConnection:ConnectionString"));
                 }
             });
 
@@ -78,7 +78,7 @@ namespace AspNetApiMonolithSample
                 {
                     Type = "oauth2",
                     Flow = "password",
-                    TokenUrl = Configuration["Api:Url"] + "connect/token"
+                    TokenUrl = Configuration.GetOrFail("Api:Url") + Configuration.GetOrFail("OpenIddict:TokenEndpointPath")
                     /*,
                     // Add scopes only if you have 3rd-party applications that need scopes
                     Scopes = new Dictionary<string, string>
@@ -124,22 +124,22 @@ namespace AspNetApiMonolithSample
                 
                 builder.Options.ApplicationCanDisplayErrors = true;
 
-                // ConfigurationEndpointPath and AuthorizationEndpointPath has well-known uris, need not to be ovewritten
-                builder.Options.TokenEndpointPath = Configuration["OpenIddict:TokenEndpointPath"];
-                builder.Options.CryptographyEndpointPath = Configuration["OpenIddict:CryptographyEndpointPath"];
+                // ConfigurationEndpointPath and CryptographyEndpointPath has well-known uris, need not to be ovewritten
+                builder.Options.TokenEndpointPath = Configuration.GetOrFail("OpenIddict:TokenEndpointPath");
+                builder.Options.AuthorizationEndpointPath = Configuration["OpenIddict:AuthorizationEndpointPath"]; 
                 builder.Options.IntrospectionEndpointPath = Configuration["OpenIddict:IntrospectionEndpointPath"];
                 builder.Options.LogoutEndpointPath = Configuration["OpenIddict:LogoutEndpointPath"];
                 builder.Options.UserinfoEndpointPath = Configuration["OpenIddict:UserinfoEndpointPath"];
             });
-
+            
             // use JWT bearer authentication
             app.UseJwtBearerAuthentication(new JwtBearerOptions()
             {
                 AutomaticAuthenticate = true,
                 AutomaticChallenge = true,
                 RequireHttpsMetadata = false,
-                Audience = Configuration["Jwt:Audience"],
-                Authority = Configuration["Jwt:Authority"],
+                Audience = Configuration.GetOrFail("Jwt:Audience"),
+                Authority = Configuration.GetOrFail("Jwt:Authority"),
             });
 
             app.UseMvc();

@@ -1,12 +1,12 @@
 {
-    "compilationOptions": {
+    "buildOptions": {
         "emitEntryPoint": true,
         "debugType": "portable",
-        "preserveCompilationContext": true
+        "preserveCompilationContext": true,
+        "copyToOutput": [
+            "appsettings.json"
+        ]
     },
-    "content": [
-        "appsettings.json"
-    ],
     "dependencies": {
         "Microsoft.NETCore.App": "1-*",
         "Microsoft.Extensions.Logging.Console": "1.0.0-*",
@@ -35,7 +35,7 @@
     },
     "frameworks": {
         "netcoreapp1.0": {
-            "imports": [
+            "imports": [ 
                 "portable-net45+wp80+win8+wpa81+dnxcore50",
                 "portable-net45+win8+wp8+wpa81",
                 "portable-net45+win8+wp8"
@@ -43,7 +43,7 @@
         }
     },
     "runtimes": {
-        "win81-x64": {}
+        "win10-x64": {}
     },
     "tools": {
         "Microsoft.DotNet.Watcher.Tools": {
