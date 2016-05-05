@@ -73,13 +73,8 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpPost("[action]")]
-        public async Task<LoggedInResult> LoggedIn([RequestUser] User user)
+        public async Task<LoggedInResult> LoggedIn([RequestUser] User loggedInUser)
         {
-            var loggedInUser = await _userManager.GetUserAsync(HttpContext.User);
-            if (loggedInUser == null)
-            {
-                throw new NotAuthorizedResult().Exception();
-            }
             return new LoggedInResult
             {
                 Id = loggedInUser.Id,
