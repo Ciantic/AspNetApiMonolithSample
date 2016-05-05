@@ -12,7 +12,7 @@ namespace AspNetApiMonolithSample.Controllers
 {
     [Authorize]
     [Route("[controller]")]
-    public class AccountController : ControllerBase
+    public class AccountController
     {
         private readonly UserManager<User> _userManager;
 
