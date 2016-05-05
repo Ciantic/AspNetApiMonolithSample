@@ -9,10 +9,10 @@ namespace AspNetApiMonolithSample.Mvc
     /// <summary>
     /// Request user modelbinder from UserManager automatically
     /// </summary>
-    public class RequsetUserModelBinder : IModelBinder
+    public class RequestUserModelBinder : IModelBinder
     {
         private readonly UserManager<User> _userManager;
-        public RequsetUserModelBinder(UserManager<User> userManager)
+        public RequestUserModelBinder(UserManager<User> userManager)
         {
             _userManager = userManager;
         }
@@ -46,7 +46,7 @@ namespace AspNetApiMonolithSample.Mvc
         {
             get
             {
-                return typeof(RequsetUserModelBinder);
+                return typeof(RequestUserModelBinder);
             }
         }
 
