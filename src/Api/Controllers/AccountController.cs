@@ -73,7 +73,7 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpPost("[action]")]
-        public async Task<LoggedInResult> LoggedIn([RequestUser] User loggedInUser)
+        public LoggedInResult LoggedIn([RequestUser] User loggedInUser)
         {
             return new LoggedInResult
             {
