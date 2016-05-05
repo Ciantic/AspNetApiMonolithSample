@@ -27,7 +27,7 @@ namespace AspNetApiMonolithSample.Mvc
     /// <summary>
     /// Get the request user from UserManager automatically
     /// </summary>
-    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property, AllowMultiple = true, Inherited = true)]
     public class RequestUserAttribute : Attribute, IBinderTypeProviderMetadata
     {
         public BindingSource BindingSource
@@ -38,7 +38,7 @@ namespace AspNetApiMonolithSample.Mvc
                     id: "RequestUser",
                     displayName: "RequestUser",
                     isGreedy: false,
-                    isFromRequest: true);
+                    isFromRequest: false);
             }
         }
 
