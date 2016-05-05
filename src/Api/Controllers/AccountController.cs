@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 
-namespace AspNetApiMonolithSample
+namespace AspNetApiMonolithSample.Controllers
 {
     [Authorize]
     [Route("[controller]")]
@@ -73,7 +73,7 @@ namespace AspNetApiMonolithSample
         }
 
         [HttpPost("[action]")]
-        public async Task<LoggedInResult> LoggedIn()
+        public async Task<LoggedInResult> LoggedIn([RequestUser] User user)
         {
             var loggedInUser = await _userManager.GetUserAsync(HttpContext.User);
             if (loggedInUser == null)
@@ -95,14 +95,9 @@ namespace AspNetApiMonolithSample
         }
 
         [HttpPost("[action]")]
-        public async Task<bool> ChangePassword([FromBody] ChangePasswordAction action)
+        public async Task<bool> ChangePassword([FromBody] ChangePasswordAction action, [RequestUser] User user)
         {
-            var loggedInUser = await _userManager.GetUserAsync(HttpContext.User);
-            if (loggedInUser == null)
-            {
-                throw new NotAuthorizedResult().Exception();
-            }
-            var res = await _userManager.ChangePasswordAsync(loggedInUser, action.CurrentPassword, action.NewPassword);
+            var res = await _userManager.ChangePasswordAsync(user, action.CurrentPassword, action.NewPassword);
             return res.Succeeded;
         }
 

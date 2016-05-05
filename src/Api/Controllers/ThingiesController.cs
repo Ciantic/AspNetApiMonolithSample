@@ -5,7 +5,7 @@ using AspNetApiMonolithSample.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AspNetApiMonolithSample
+namespace AspNetApiMonolithSample.Controllers
 {
     [Authorize]
     [Route("[controller]")]

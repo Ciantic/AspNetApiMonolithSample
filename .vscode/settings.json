@@ -2,7 +2,7 @@
 {
     "files.exclude": {
         "**/.git": true,
-        "bin/": true,
-        "obj/": true
+        "**/bin/": true,
+        "**/obj/": true
     }
 }
