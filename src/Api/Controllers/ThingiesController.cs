@@ -9,7 +9,7 @@ namespace AspNetApiMonolithSample.Controllers
 {
     [Authorize]
     [Route("[controller]")]
-    public class ThingiesController : ControllerBase
+    public class ThingiesController
     {
         private readonly IThingieStore thingies;
 
