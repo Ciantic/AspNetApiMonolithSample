@@ -88,7 +88,7 @@ namespace AspNetApiMonolithSample
                     
                     opts.DefaultPolicy = new AuthorizationPolicyBuilder()
                         .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api")
+                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api_user")
                         .Build();
                 })
                 .AddDataAnnotations()
@@ -109,7 +109,7 @@ namespace AspNetApiMonolithSample
                     TokenUrl = Configuration.GetOrFail("Api:Url") + "/OpenId/_token",
                     Scopes = new Dictionary<string, string>
                     {
-                        { "api", "API user" }
+                        { "api_user", "API user" }
                     }
                 });
             });
@@ -156,7 +156,7 @@ namespace AspNetApiMonolithSample
                 builder.Options.AuthorizationEndpointPath = "/OpenId/Authorize"; 
                 builder.Options.TokenEndpointPath = "/OpenId/_token";
                 builder.Options.IntrospectionEndpointPath = "/OpenId/_introspection";
-                // builder.Options.LogoutEndpointPath = Configuration["OpenIddict:LogoutEndpointPath"];
+                // builder.Options.LogoutEndpointPath = "/OpenId/Logout";
                 // builder.Options.UserinfoEndpointPath = Configuration["OpenIddict:UserinfoEndpointPath"];
             });
 

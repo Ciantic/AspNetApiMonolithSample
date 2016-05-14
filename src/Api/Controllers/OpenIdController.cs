@@ -15,6 +15,10 @@ using AspNet.Security.OpenIdConnect.Extensions;
 using OpenIddict;
 using OpenIddict.Models;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using System;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
+using System.Diagnostics;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -33,16 +37,28 @@ namespace AspNetApiMonolithSample.Controllers
         protected virtual OpenIddictServices<User, Application<int>> Services { get; }
 
         public OpenIdController(
+            OpenIddictServices<User, Application<int>> services,
             UserManager<User> userManager,
             SignInManager<User> signInManager,
             ILoggerFactory loggerFactory)
         {
+            Services = services;
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = loggerFactory.CreateLogger<AccountController>();
         }
 
-        [HttpGet("Login")]
+        [HttpGet("[action]")]
+        public async Task<IActionResult> Logout([FromQuery] string returnUrl = "")
+        {
+            await _signInManager.SignOutAsync();
+            if (returnUrl.Length > 0) {
+                return Redirect(returnUrl);
+            }
+            return new OkObjectResult("LOGGED OUT");
+        }
+
+        [HttpGet("[action]")]
         public IActionResult Login()
         {
             return new ContentResult()
@@ -74,41 +90,32 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpPost("Login")]
-        public async Task<string> LoginPost(LoginViewModel model, string returnUrl = null)
+        public async Task<IActionResult> LoginPost(LoginViewModel model,[FromQuery] string returnUrl = "")
         {
-            /*
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null) {
-                return "FAIL";
-            }
-            if (!await _signInManager.CanSignInAsync(user)) {
-                return "FAIL";
-            }
-            if (_userManager.SupportsUserLockout && !await _userManager.IsLockedOutAsync(user)) {
-                return "FAIL";
-            }
-            */
             var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
             {
-                return "OK?";
-                // return RedirectToLocal(returnUrl);
+                if (returnUrl.Length > 0) {
+                    return Redirect(returnUrl);
+                }
+                return new OkObjectResult("LOGGED IN");
             }
-            if (result.RequiresTwoFactor)
+            else if (result.RequiresTwoFactor)
             {
+
                 //return RedirectToAction(nameof(SendCode), new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
-                return "RequiresTwoFactor";
+                return new OkObjectResult("TWO FACTOR");
             }
-            if (result.IsLockedOut)
+            else if (result.IsLockedOut)
             {
-                // return View("Lockout");
-                return "LockedOUt";
+                return new OkObjectResult("LOCKED OUT");
             }
-            if (result.IsNotAllowed)
+            else if (result.IsNotAllowed)
             {
-                return "NotAllowed";
+                return new OkObjectResult("NOT ALLOWED");
             }
-            return "?";
+
+            return new OkObjectResult("UNKNONW");
         }
 
         // TODO REPLICATE Authorize, Accept at least, even in same
@@ -121,7 +128,7 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 return new ObjectResult("ERROR");
             }
-            
+
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
@@ -138,11 +145,8 @@ namespace AspNetApiMonolithSample.Controllers
                     })
                 });
             }
-            
-            System.Console.WriteLine("FindApplicationByIdAsync, request.ClientId {0}", request.ClientId);
+
             var application = await Services.Applications.FindApplicationByIdAsync(request.ClientId);
-            System.Console.WriteLine("FindApplicationByIdAsync!!!");
-            
             if (application == null)
             {
                 return new ObjectResult(new OpenIdConnectMessage
@@ -152,7 +156,40 @@ namespace AspNetApiMonolithSample.Controllers
                 });
 
             }
-            return new ObjectResult("OK");
+
+            // TODO IF one of official app id's check
+            if (request.ClientId == "10000")
+            {
+
+                // Retrieve the user data using the unique identifier.
+                var user = await Services.Users.GetUserAsync(User);
+                if (user == null)
+                {
+                    return new ObjectResult(new OpenIdConnectMessage
+                    {
+                        Error = OpenIdConnectConstants.Errors.ServerError,
+                        ErrorDescription = "An internal error has occurred"
+                    });
+                }
+
+                var identity = await Services.Applications.CreateIdentityAsync(user, request.GetScopes());
+                Debug.Assert(identity != null);
+
+                // Create a new authentication ticket holding the user identity.
+                var ticket = new AuthenticationTicket(
+                    new ClaimsPrincipal(identity),
+                    new AuthenticationProperties(),
+                    Services.Options.AuthenticationScheme);
+
+                ticket.SetResources(request.GetResources());
+                ticket.SetScopes(request.GetScopes());
+
+                // Returning a SignInResult will ask ASOS to serialize the specified identity to build appropriate tokens.
+                // Note: you should always make sure the identities you return contain ClaimTypes.NameIdentifier claim.
+                // In this sample, the identity always contains the name identifier returned by the external provider.
+                return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+            }
+            return new ObjectResult("HUH?");
         }
 
         [Authorize(Policy = "COOKIES")]
