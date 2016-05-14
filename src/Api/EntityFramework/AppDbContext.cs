@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;

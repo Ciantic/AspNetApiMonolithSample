@@ -7,6 +7,9 @@
             "appsettings.json"
         ]
     },
+    "publishOptions": {
+        "include": ["wwwroot"]
+    },
     "dependencies": {
         "Microsoft.NETCore.App": "1-*",
         "Microsoft.Extensions.Logging.Console": "1.0.0-*",
@@ -24,6 +27,7 @@
         "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "1.0.0-*",
         "Microsoft.AspNetCore.Authentication.Cookies": "1.0.0-*",
         "Microsoft.AspNetCore.Authentication.JwtBearer": "1.0.0-*",
+        "Microsoft.AspNetCore.Authentication.OAuth": "1.0.0-*",
         "Microsoft.AspNetCore.Authorization": "1.0.0-*",
         "Microsoft.EntityFrameworkCore.Commands": "1.0.0-*",
         "Microsoft.EntityFrameworkCore.SqlServer": "1.0.0-*",
