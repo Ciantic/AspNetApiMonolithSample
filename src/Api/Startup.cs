@@ -64,7 +64,6 @@ namespace AspNetApiMonolithSample
 
             services.AddIdentity<User, Role>(opts => {
                 //opts.Cookies.ApplicationCookieAuthenticationScheme
-<<<<<<< HEAD
                 opts.Cookies.ApplicationCookie.CookiePath = "/OpenId/";
             })
                 .AddEntityFrameworkStores<AppDbContext, int>()
@@ -74,19 +73,6 @@ namespace AspNetApiMonolithSample
                 .SetAuthorizationEndpointPath("/connect/authorize")
                 .SetLogoutEndpointPath("/connect/logout");
 
-=======
-                opts.Cookies.ApplicationCookie.LoginPath = "/OpenId/Login";
-                opts.Cookies.ApplicationCookie.LogoutPath = "/OpenId/Logout";
-                opts.Cookies.ApplicationCookie.CookiePath = "/OpenId/";
-            })
-                .AddEntityFrameworkStores<AppDbContext, int>()
-                .AddDefaultTokenProviders()
-                .AddOpenIddictCore<Application<int>>(c =>
-                {
-                    c.UseEntityFramework();
-                });
-                
->>>>>>> e5e73ed9824084c880aa0522e6c293def190656f
             services.AddMvcCore(opts =>
             {
                 opts.Filters.Add(new ModelStateValidationFilter());
@@ -96,14 +82,9 @@ namespace AspNetApiMonolithSample
                 .AddApiExplorer()
                 .AddAuthorization(opts => {
                     opts.AddPolicy("COOKIES", opts.DefaultPolicy);
-                    
                     opts.DefaultPolicy = new AuthorizationPolicyBuilder()
                         .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-<<<<<<< HEAD
                         .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api")
-=======
-                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api_user")
->>>>>>> e5e73ed9824084c880aa0522e6c293def190656f
                         .Build();
                 })
                 .AddDataAnnotations()
@@ -145,11 +126,7 @@ namespace AspNetApiMonolithSample
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
             loggerFactory.AddConsole(LogLevel.Debug);
-<<<<<<< HEAD
             app.UseStaticFiles();
-=======
->>>>>>> e5e73ed9824084c880aa0522e6c293def190656f
-            
             app.UseIdentity();
             
             if (env.IsDevelopment())
@@ -159,15 +136,10 @@ namespace AspNetApiMonolithSample
                     builder.AllowAnyOrigin();
                 });
             }
-<<<<<<< HEAD
 
             app.UseOpenIddict();
             /*
-            builder =>
-=======
-            
             app.UseOpenIddictCore(builder =>
->>>>>>> e5e73ed9824084c880aa0522e6c293def190656f
             {
                 builder.Options.UseJwtTokens();
 
@@ -185,10 +157,7 @@ namespace AspNetApiMonolithSample
                 // builder.Options.LogoutEndpointPath = "/OpenId/Logout";
                 // builder.Options.UserinfoEndpointPath = Configuration["OpenIddict:UserinfoEndpointPath"];
             });
-<<<<<<< HEAD
             */
-=======
->>>>>>> e5e73ed9824084c880aa0522e6c293def190656f
 
             // use JWT bearer authentication
             app.UseJwtBearerAuthentication(new JwtBearerOptions()
@@ -201,14 +170,8 @@ namespace AspNetApiMonolithSample
             });
             
             app.UseMvc();
-<<<<<<< HEAD
             app.UseSwaggerGen("docs/{apiVersion}/definition.json");
             app.UseSwaggerUi("docs", "docs/definition.json");
-=======
-            app.UseStaticFiles();
-            app.UseSwaggerGen("docs/{apiVersion}/definition.json");
-            app.UseSwaggerUi("docs", "docs/v1/definition.json");
->>>>>>> e5e73ed9824084c880aa0522e6c293def190656f
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
         public static void Main(string[] args)
@@ -219,7 +182,7 @@ namespace AspNetApiMonolithSample
                 .UseKestrel()
                 .UseStartup<Startup>()
                 .Build();
-
+            
             host.Run();
         }
     }

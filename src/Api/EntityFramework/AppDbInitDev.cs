@@ -3,11 +3,7 @@ using System.Threading.Tasks;
 using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-<<<<<<< HEAD
-=======
 using OpenIddict;
-using OpenIddict.Models;
->>>>>>> e5e73ed9824084c880aa0522e6c293def190656f
 
 namespace AspNetApiMonolithSample.EntityFramework
 {
@@ -39,18 +35,14 @@ namespace AspNetApiMonolithSample.EntityFramework
             {
                 Name = "Hello",
             });
-<<<<<<< HEAD
-            
-=======
-            db.Add(new Application<int> {
+            db.Add(new OpenIddictApplication<int> {
                 Id = 10000,
                 DisplayName = "Docs",
                 RedirectUri = "http://localhost:5000/docs/o2c.html",
                 LogoutRedirectUri = "http://localhost:5000/docs/index.html",
                 Secret = CryptoHelper.Crypto.HashPassword("docs"),
-                Type = OpenIddictConstants.ApplicationTypes.Public,
+                Type = OpenIddictConstants.ClientTypes.Public,
             });
->>>>>>> e5e73ed9824084c880aa0522e6c293def190656f
             await db.SaveChangesAsync();
         }
     }
