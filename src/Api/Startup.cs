@@ -70,8 +70,9 @@ namespace AspNetApiMonolithSample
                 .AddDefaultTokenProviders();
 
             services.AddOpenIddict<User, OpenIddictApplication<int>, OpenIddictAuthorization<OpenIddictToken<int>, int>, OpenIddictScope<int>, OpenIddictToken<int>, AppDbContext, int>()
-                .SetAuthorizationEndpointPath("/connect/authorize")
-                .SetLogoutEndpointPath("/connect/logout");
+                .SetTokenEndpointPath("/OpenId/token")
+                .SetAuthorizationEndpointPath("/OpenId/authorize")
+                .SetLogoutEndpointPath("/OpenId/logout");
 
             services.AddMvcCore(opts =>
             {
