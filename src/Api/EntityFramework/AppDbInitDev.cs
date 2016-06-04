@@ -1,8 +1,8 @@
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace AspNetApiMonolithSample.EntityFramework
 {
@@ -34,6 +34,7 @@ namespace AspNetApiMonolithSample.EntityFramework
             {
                 Name = "Hello",
             });
+            
             await db.SaveChangesAsync();
         }
     }

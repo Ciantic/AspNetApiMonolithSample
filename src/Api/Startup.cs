@@ -10,8 +10,18 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
 using AspNetApiMonolithSample.Mvc;
 using AspNetApiMonolithSample.Stores;
-using OpenIddict.Models;
 using Swashbuckle.SwaggerGen.Generator;
+using System.IO;
+using OpenIddict;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using AspNet.Security.OpenIdConnect.Extensions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using System.Collections.Generic;
 
 namespace AspNetApiMonolithSample
 {
@@ -52,13 +62,16 @@ namespace AspNetApiMonolithSample
                 }
             });
 
-            services.AddIdentity<User, Role>()
+            services.AddIdentity<User, Role>(opts => {
+                //opts.Cookies.ApplicationCookieAuthenticationScheme
+                opts.Cookies.ApplicationCookie.CookiePath = "/OpenId/";
+            })
                 .AddEntityFrameworkStores<AppDbContext, int>()
-                .AddDefaultTokenProviders()
-                .AddOpenIddictCore<Application<int>>(c =>
-                {
-                    c.UseEntityFramework();
-                });
+                .AddDefaultTokenProviders();
+
+            services.AddOpenIddict<User, OpenIddictApplication<int>, OpenIddictAuthorization<OpenIddictToken<int>, int>, OpenIddictScope<int>, OpenIddictToken<int>, AppDbContext, int>()
+                .SetAuthorizationEndpointPath("/connect/authorize")
+                .SetLogoutEndpointPath("/connect/logout");
 
             services.AddMvcCore(opts =>
             {
@@ -67,13 +80,24 @@ namespace AspNetApiMonolithSample
                 opts.Filters.Add(new ApiExceptionFilter());
             })
                 .AddApiExplorer()
-                .AddAuthorization()
+                .AddAuthorization(opts => {
+                    opts.AddPolicy("COOKIES", opts.DefaultPolicy);
+                    
+                    opts.DefaultPolicy = new AuthorizationPolicyBuilder()
+                        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api")
+                        .Build();
+                })
                 .AddDataAnnotations()
                 .AddFormatterMappings()
                 .AddJsonFormatters();
 
             services.AddSwaggerGen(opts =>
             {
+                if (Configuration.GetOrFail("Api:Url").EndsWith("/")) {
+                    throw new System.Exception("Configuration `Api.Url` must not end with /");
+                }
+                
                 opts.AddSecurityDefinition("oauth2", new OAuth2Scheme
                 {
                     Type = "oauth2",
@@ -100,10 +124,16 @@ namespace AspNetApiMonolithSample
             }
             
             services.AddTransient<IThingieStore, ThingieStore>();
+            
         }
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
+            loggerFactory.AddConsole(LogLevel.Debug);
+            app.UseStaticFiles();
+            
+            app.UseIdentity();
+            
             if (env.IsDevelopment())
             {
                 app.UseCors(builder =>
@@ -112,8 +142,9 @@ namespace AspNetApiMonolithSample
                 });
             }
 
-            loggerFactory.AddConsole(LogLevel.Debug);
-            app.UseOpenIddictCore(builder =>
+            app.UseOpenIddict();
+            /*
+            builder =>
             {
                 builder.Options.UseJwtTokens();
 
@@ -123,7 +154,7 @@ namespace AspNetApiMonolithSample
                 }
                 
                 builder.Options.ApplicationCanDisplayErrors = true;
-
+                
                 // ConfigurationEndpointPath and CryptographyEndpointPath has well-known uris, need not to be ovewritten
                 builder.Options.TokenEndpointPath = Configuration.GetOrFail("OpenIddict:TokenEndpointPath");
                 builder.Options.AuthorizationEndpointPath = Configuration["OpenIddict:AuthorizationEndpointPath"]; 
@@ -131,7 +162,8 @@ namespace AspNetApiMonolithSample
                 builder.Options.LogoutEndpointPath = Configuration["OpenIddict:LogoutEndpointPath"];
                 builder.Options.UserinfoEndpointPath = Configuration["OpenIddict:UserinfoEndpointPath"];
             });
-            
+            */
+
             // use JWT bearer authentication
             app.UseJwtBearerAuthentication(new JwtBearerOptions()
             {
@@ -141,17 +173,18 @@ namespace AspNetApiMonolithSample
                 Audience = Configuration.GetOrFail("Jwt:Audience"),
                 Authority = Configuration.GetOrFail("Jwt:Authority"),
             });
-
+            
             app.UseMvc();
-            app.UseSwaggerGen();
-            app.UseSwaggerUi();
+            app.UseSwaggerGen("docs/{apiVersion}/definition.json");
+            app.UseSwaggerUi("docs", "docs/definition.json");
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
         public static void Main(string[] args)
         {
             var host = new WebHostBuilder()
-                .UseKestrel()
+                .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseIISIntegration()
+                .UseKestrel()
                 .UseStartup<Startup>()
                 .Build();
 
