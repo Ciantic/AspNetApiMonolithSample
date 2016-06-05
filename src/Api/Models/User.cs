@@ -3,7 +3,7 @@ using OpenIddict;
 
 namespace AspNetApiMonolithSample.Models
 {
-    public class User : OpenIddictUser<OpenIddictAuthorization<OpenIddictToken<int>, int>, OpenIddictToken<int>, int>
+    public class User : OpenIddictUser
     {
 
     }

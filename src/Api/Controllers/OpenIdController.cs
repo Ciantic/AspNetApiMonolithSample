@@ -20,26 +20,23 @@ using System.Security.Claims;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Infrastructure;
+using AspNetApiMonolithSample.EntityFramework;
 
 namespace AspNetApiMonolithSample.Controllers
 {
     [Route("[controller]")]
     public class OpenIdController : ControllerBase
     {
-        private readonly UserManager<User> _userManager;
-
         private readonly SignInManager<User> _signInManager;
 
         private readonly ILogger _logger;
 
         public OpenIdController(
-            UserManager<User> userManager,
             SignInManager<User> signInManager,
             ILoggerFactory loggerFactory)
         {
-            _userManager = userManager;
             _signInManager = signInManager;
-            _logger = loggerFactory.CreateLogger<AccountController>();
+            _logger = loggerFactory.CreateLogger<OpenIdController>();
         }
 
         [HttpGet("[action]")]
@@ -115,7 +112,7 @@ namespace AspNetApiMonolithSample.Controllers
         // TODO REPLICATE Authorize, Accept at least, even in same
         // https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs
         [HttpGet("[action]"), HttpPost("[action]")]
-        public virtual async Task<IActionResult> Authorize([FromServices] OpenIddictApplicationManager<OpenIddictApplication<int>> applications, [FromServices] UserManager<User> userManager)
+        public virtual async Task<IActionResult> Authorize()
         {
             var services = HttpContext.RequestServices.GetRequiredService<OpenIddictServices<User, OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken>>();
 
@@ -142,7 +139,7 @@ namespace AspNetApiMonolithSample.Controllers
                 });
             }
 
-            var application = await applications.FindByIdAsync(request.ClientId);
+            var application = await services.Applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
                 return new ObjectResult(new OpenIdConnectMessage
@@ -154,11 +151,10 @@ namespace AspNetApiMonolithSample.Controllers
             }
 
             // TODO IF one of official app id's check
-            if (request.ClientId == "10000")
+            if (request.ClientId == "official-docs")
             {
-
                 // Retrieve the user data using the unique identifier.
-                var user = await userManager.GetUserAsync(User);
+                var user = await services.Users.GetUserAsync(User);
                 if (user == null)
                 {
                     return new ObjectResult(new OpenIdConnectMessage

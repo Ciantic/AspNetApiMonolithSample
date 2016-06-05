@@ -66,7 +66,7 @@ namespace AspNetApiMonolithSample.Controllers
 
         public class LoggedInResult
         {
-            public int Id { get; set; } = 0;
+            public string Id { get; set; } = "";
 
             public string Email { get; set; } = "";
 

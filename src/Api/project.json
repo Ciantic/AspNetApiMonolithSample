@@ -32,7 +32,7 @@
         "Microsoft.EntityFrameworkCore.Commands": "1.0.0-*",
         "Microsoft.EntityFrameworkCore.SqlServer": "1.0.0-*",
         "Microsoft.EntityFrameworkCore.SQLite": "1.0.0-*",
-      "OpenIddict": "1.0.0-*",
+        "OpenIddict": "1.0.0-*",
         "Swashbuckle.SwaggerGen": "6.0.0-beta9",
         "Swashbuckle.SwaggerUi": "6.0.0-beta9"
     },

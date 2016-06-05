@@ -35,8 +35,8 @@ namespace AspNetApiMonolithSample.EntityFramework
             {
                 Name = "Hello",
             });
-            db.Add(new OpenIddictApplication<int> {
-                Id = 10000,
+            db.Add(new OpenIddictApplication {
+                Id = "official-docs",
                 DisplayName = "Docs",
                 RedirectUri = "http://localhost:5000/docs/o2c.html",
                 LogoutRedirectUri = "http://localhost:5000/docs/index.html",

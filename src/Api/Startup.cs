@@ -64,15 +64,23 @@ namespace AspNetApiMonolithSample
 
             services.AddIdentity<User, Role>(opts => {
                 //opts.Cookies.ApplicationCookieAuthenticationScheme
+                opts.Cookies.ApplicationCookie.LoginPath = "/OpenId/Login";
+                opts.Cookies.ApplicationCookie.LogoutPath = "/OpenId/Logout";
                 opts.Cookies.ApplicationCookie.CookiePath = "/OpenId/";
             })
-                .AddEntityFrameworkStores<AppDbContext, int>()
+                .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
 
-            services.AddOpenIddict<User, OpenIddictApplication<int>, OpenIddictAuthorization<OpenIddictToken<int>, int>, OpenIddictScope<int>, OpenIddictToken<int>, AppDbContext, int>()
+            var openIdDict = services.AddOpenIddict<User, AppDbContext>()
                 .SetTokenEndpointPath("/OpenId/token")
-                .SetAuthorizationEndpointPath("/OpenId/authorize")
-                .SetLogoutEndpointPath("/OpenId/logout");
+                .SetAuthorizationEndpointPath("/OpenId/Authorize")
+                .SetLogoutEndpointPath("/OpenId/Logout")
+                .UseJsonWebTokens();
+
+            if (env.IsDevelopment())
+            {
+                openIdDict.DisableHttpsRequirement();
+            }
 
             services.AddMvcCore(opts =>
             {
@@ -85,7 +93,7 @@ namespace AspNetApiMonolithSample
                     opts.AddPolicy("COOKIES", opts.DefaultPolicy);
                     opts.DefaultPolicy = new AuthorizationPolicyBuilder()
                         .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api")
+                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api_user")
                         .Build();
                 })
                 .AddDataAnnotations()
@@ -103,7 +111,7 @@ namespace AspNetApiMonolithSample
                     Type = "oauth2",
                     Flow = "implicit",
                     AuthorizationUrl = Configuration.GetOrFail("Api:Url") + "/OpenId/Authorize", 
-                    TokenUrl = Configuration.GetOrFail("Api:Url") + "/OpenId/_token",
+                    TokenUrl = Configuration.GetOrFail("Api:Url") + "/OpenId/token",
                     Scopes = new Dictionary<string, string>
                     {
                         { "api_user", "API user" }
@@ -172,7 +180,7 @@ namespace AspNetApiMonolithSample
             
             app.UseMvc();
             app.UseSwaggerGen("docs/{apiVersion}/definition.json");
-            app.UseSwaggerUi("docs", "docs/definition.json");
+            app.UseSwaggerUi("docs", "/docs/v1/definition.json");
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
         public static void Main(string[] args)

@@ -6,7 +6,7 @@ using OpenIddict;
 
 namespace AspNetApiMonolithSample.EntityFramework
 {
-    public class AppDbContext : OpenIddictContext<User, OpenIddictApplication<int>, OpenIddictAuthorization<OpenIddictToken<int>, int>, OpenIddictScope<int>, OpenIddictToken<int>, Role, int>
+    public class AppDbContext : OpenIddictContext<User, OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken, Role, string>
     {
         public DbSet<Thingie> Thingies { get; set; }
 
