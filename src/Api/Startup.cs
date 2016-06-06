@@ -22,6 +22,7 @@ using AspNet.Security.OpenIdConnect.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace AspNetApiMonolithSample
 {
@@ -102,6 +103,18 @@ namespace AspNetApiMonolithSample
 
             services.AddSwaggerGen(opts =>
             {
+                // Include .NET namespace in the Swagger UI sections
+                opts.GroupActionsBy((s) =>
+                {
+                    var r = new Regex(@"Controllers.(.*?)Controller");
+                    var m = r.Match(s.ActionDescriptor.DisplayName);
+                    if (m.Success)
+                    {
+                        return m.Groups[1].Value;
+                    }
+                    return null;
+                });
+
                 if (Configuration.GetOrFail("Api:Url").EndsWith("/")) {
                     throw new System.Exception("Configuration `Api.Url` must not end with /");
                 }

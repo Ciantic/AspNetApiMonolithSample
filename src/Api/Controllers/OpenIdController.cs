@@ -21,28 +21,27 @@ using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Infrastructure;
 using AspNetApiMonolithSample.EntityFramework;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 
 namespace AspNetApiMonolithSample.Controllers
 {
     [Route("[controller]")]
     public class OpenIdController : ControllerBase
     {
-        private readonly SignInManager<User> _signInManager;
 
         private readonly ILogger _logger;
 
         public OpenIdController(
-            SignInManager<User> signInManager,
             ILoggerFactory loggerFactory)
         {
-            _signInManager = signInManager;
             _logger = loggerFactory.CreateLogger<OpenIdController>();
         }
 
         [HttpGet("[action]")]
-        public async Task<IActionResult> Logout([FromQuery] string returnUrl = "")
+        public async Task<IActionResult> Logout([FromServices] SignInManager<User> signInManager, [FromQuery] string returnUrl = "")
         {
-            await _signInManager.SignOutAsync();
+            await signInManager.SignOutAsync();
             if (returnUrl.Length > 0) {
                 return Redirect(returnUrl);
             }
@@ -81,9 +80,9 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpPost("Login")]
-        public async Task<IActionResult> LoginPost(LoginViewModel model,[FromQuery] string returnUrl = "")
+        public async Task<IActionResult> LoginPost(LoginViewModel model, [FromServices] SignInManager<User> signInManager, [FromQuery] string returnUrl = "")
         {
-            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+            var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
             {
                 if (returnUrl.Length > 0) {
@@ -112,9 +111,14 @@ namespace AspNetApiMonolithSample.Controllers
         // TODO REPLICATE Authorize, Accept at least, even in same
         // https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs
         [HttpGet("[action]"), HttpPost("[action]")]
-        public virtual async Task<IActionResult> Authorize()
+        public virtual async Task<IActionResult> Authorize(
+            [FromServices] UserManager<User> users,
+            [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
+            [FromServices] OpenIddictTokenManager<OpenIddictToken, User> tokens,
+            [FromServices] IOptions<OpenIddictOptions> options
+            )
         {
-            var services = HttpContext.RequestServices.GetRequiredService<OpenIddictServices<User, OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken>>();
+            // var services = HttpContext.RequestServices.GetRequiredService<OpenIddictServices<User, OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken>>();
 
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
@@ -139,7 +143,7 @@ namespace AspNetApiMonolithSample.Controllers
                 });
             }
 
-            var application = await services.Applications.FindByIdAsync(request.ClientId);
+            var application = await applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
                 return new ObjectResult(new OpenIdConnectMessage
@@ -154,7 +158,7 @@ namespace AspNetApiMonolithSample.Controllers
             if (request.ClientId == "official-docs")
             {
                 // Retrieve the user data using the unique identifier.
-                var user = await services.Users.GetUserAsync(User);
+                var user = await users.GetUserAsync(User);
                 if (user == null)
                 {
                     return new ObjectResult(new OpenIdConnectMessage
@@ -164,14 +168,14 @@ namespace AspNetApiMonolithSample.Controllers
                     });
                 }
 
-                var identity = await services.Tokens.CreateIdentityAsync(user, request.GetScopes());
+                var identity = await tokens.CreateIdentityAsync(user, request.GetScopes());
                 Debug.Assert(identity != null);
 
                 // Create a new authentication ticket holding the user identity.
                 var ticket = new AuthenticationTicket(
                     new ClaimsPrincipal(identity),
                     new AuthenticationProperties(),
-                    services.Options.AuthenticationScheme);
+                    options.Value.AuthenticationScheme);
 
                 ticket.SetResources(request.GetResources());
                 ticket.SetScopes(request.GetScopes());
