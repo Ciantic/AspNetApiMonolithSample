@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
 
 namespace AspNetApiMonolithSample
 {
@@ -142,7 +143,7 @@ namespace AspNetApiMonolithSample
             }
             
             services.AddTransient<IThingieStore, ThingieStore>();
-            
+            services.Configure<List<OpenIddictApplication>>(Configuration.GetSection("Applications"));
         }
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
@@ -190,7 +191,11 @@ namespace AspNetApiMonolithSample
                 Audience = Configuration.GetOrFail("Jwt:Audience"),
                 Authority = Configuration.GetOrFail("Jwt:Authority"),
             });
-            
+
+            List<OpenIddictApplication> openIddictApps = app.ApplicationServices.GetRequiredService<IOptions<List<OpenIddictApplication>>>().Value;
+
+            // TODO: REGISTER OFFICIAL APPS HERE
+
             app.UseMvc();
             app.UseSwaggerGen("docs/{apiVersion}/definition.json");
             app.UseSwaggerUi("docs", "/docs/v1/definition.json");

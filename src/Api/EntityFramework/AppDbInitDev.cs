@@ -4,6 +4,9 @@ using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict;
+using System;
+using Microsoft.Extensions.Options;
+using System.Collections.Generic;
 
 namespace AspNetApiMonolithSample.EntityFramework
 {
@@ -11,11 +14,13 @@ namespace AspNetApiMonolithSample.EntityFramework
     {
         private readonly AppDbContext db;
         private readonly UserManager<User> userManager;
+        private readonly List<OpenIddictApplication> apps;
 
-        public AppDbInitDev(AppDbContext db, UserManager<User> userManager)
+        public AppDbInitDev(AppDbContext db, UserManager<User> userManager, IOptions<List<OpenIddictApplication>> apps)
         {
             this.db = db;
             this.userManager = userManager;
+            this.apps = apps.Value;
         }
 
         public async Task InitAsync()
@@ -35,14 +40,10 @@ namespace AspNetApiMonolithSample.EntityFramework
             {
                 Name = "Hello",
             });
-            db.Add(new OpenIddictApplication {
-                Id = "official-docs",
-                DisplayName = "Docs",
-                RedirectUri = "http://localhost:5000/docs/o2c.html",
-                LogoutRedirectUri = "http://localhost:5000/docs/index.html",
-                Secret = CryptoHelper.Crypto.HashPassword("docs"),
-                Type = OpenIddictConstants.ClientTypes.Public,
-            });
+            foreach (var app in apps)
+            {
+                db.Add(app);
+            }
             await db.SaveChangesAsync();
         }
     }

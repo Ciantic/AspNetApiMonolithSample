@@ -7,6 +7,7 @@ using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Linq;
+using System;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -66,7 +67,7 @@ namespace AspNetApiMonolithSample.Controllers
 
         public class LoggedInResult
         {
-            public string Id { get; set; } = "";
+            public string Id { get; set; }
 
             public string Email { get; set; } = "";
 

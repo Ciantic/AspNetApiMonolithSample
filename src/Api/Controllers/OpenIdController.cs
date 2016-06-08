@@ -23,6 +23,7 @@ using OpenIddict.Infrastructure;
 using AspNetApiMonolithSample.EntityFramework;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
+using System.Collections.Generic;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -98,14 +99,14 @@ namespace AspNetApiMonolithSample.Controllers
             }
             else if (result.IsLockedOut)
             {
-                return new OkObjectResult("LOCKED OUT");
+                return new BadRequestObjectResult("LOCKED OUT");
             }
             else if (result.IsNotAllowed)
             {
-                return new OkObjectResult("NOT ALLOWED");
+                return new BadRequestObjectResult("NOT ALLOWED");
             }
 
-            return new OkObjectResult("UNKNONW");
+            return new BadRequestObjectResult("UNKNONW");
         }
 
         // TODO REPLICATE Authorize, Accept at least, even in same
@@ -115,7 +116,8 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] UserManager<User> users,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
             [FromServices] OpenIddictTokenManager<OpenIddictToken, User> tokens,
-            [FromServices] IOptions<OpenIddictOptions> options
+            [FromServices] IOptions<OpenIddictOptions> options,
+            [FromServices] IOptions<List<OpenIddictApplication>> officialApplications
             )
         {
             // var services = HttpContext.RequestServices.GetRequiredService<OpenIddictServices<User, OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken>>();
@@ -123,13 +125,13 @@ namespace AspNetApiMonolithSample.Controllers
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
-                return new ObjectResult("ERROR");
+                return new BadRequestObjectResult("ERROR");
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return new ObjectResult("ERROR REQUEST");
+                return new BadRequestObjectResult("ERROR REQUEST");
             }
 
             if (!User.Identities.Any(identity => identity.IsAuthenticated))
@@ -146,7 +148,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
-                return new ObjectResult(new OpenIdConnectMessage
+                return new BadRequestObjectResult(new OpenIdConnectMessage
                 {
                     Error = OpenIdConnectConstants.Errors.InvalidClient,
                     ErrorDescription = "Details concerning the calling client application cannot be found in the database"
@@ -154,38 +156,76 @@ namespace AspNetApiMonolithSample.Controllers
 
             }
 
-            // TODO IF one of official app id's check
-            if (request.ClientId == "official-docs")
+            // Check if the application is official (registered in settings) and accept any request by default
+            if (officialApplications.Value.Where(x => x.Id == request.ClientId).Count() != 0)
             {
-                // Retrieve the user data using the unique identifier.
-                var user = await users.GetUserAsync(User);
-                if (user == null)
-                {
-                    return new ObjectResult(new OpenIdConnectMessage
-                    {
-                        Error = OpenIdConnectConstants.Errors.ServerError,
-                        ErrorDescription = "An internal error has occurred"
-                    });
-                }
-
-                var identity = await tokens.CreateIdentityAsync(user, request.GetScopes());
-                Debug.Assert(identity != null);
-
-                // Create a new authentication ticket holding the user identity.
-                var ticket = new AuthenticationTicket(
-                    new ClaimsPrincipal(identity),
-                    new AuthenticationProperties(),
-                    options.Value.AuthenticationScheme);
-
-                ticket.SetResources(request.GetResources());
-                ticket.SetScopes(request.GetScopes());
-
-                // Returning a SignInResult will ask ASOS to serialize the specified identity to build appropriate tokens.
-                // Note: you should always make sure the identities you return contain ClaimTypes.NameIdentifier claim.
-                // In this sample, the identity always contains the name identifier returned by the external provider.
-                return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+                return await Accept(users, applications, tokens, options);
             }
             return new ObjectResult("HUH?");
+        }
+
+        [Authorize, HttpPost, ValidateAntiForgeryToken]
+        public virtual async Task<IActionResult> Accept(
+            [FromServices] UserManager<User> users,
+            [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
+            [FromServices] OpenIddictTokenManager<OpenIddictToken, User> tokens,
+            [FromServices] IOptions<OpenIddictOptions> options)
+        {
+            var response = HttpContext.GetOpenIdConnectResponse();
+            if (response != null)
+            {
+                return new BadRequestObjectResult(response);
+            }
+
+            var request = HttpContext.GetOpenIdConnectRequest();
+            if (request == null)
+            {
+                return new BadRequestObjectResult(new OpenIdConnectMessage
+                {
+                    Error = OpenIdConnectConstants.Errors.ServerError,
+                    ErrorDescription = "An internal error has occurred"
+                });
+            }
+
+            // Retrieve the user data using the unique identifier.
+            var user = await users.GetUserAsync(User);
+            if (user == null)
+            {
+                return new BadRequestObjectResult(new OpenIdConnectMessage
+                {
+                    Error = OpenIdConnectConstants.Errors.ServerError,
+                    ErrorDescription = "An internal error has occurred"
+                });
+            }
+
+            // Create a new ClaimsIdentity containing the claims that
+            // will be used to create an id_token, a token or a code.
+            var identity = await tokens.CreateIdentityAsync(user, request.GetScopes());
+            Debug.Assert(identity != null);
+
+            var application = await applications.FindByIdAsync(request.ClientId);
+            if (application == null)
+            {
+                return new BadRequestObjectResult(new OpenIdConnectMessage
+                {
+                    Error = OpenIdConnectConstants.Errors.InvalidClient,
+                    ErrorDescription = "Details concerning the calling client application cannot be found in the database"
+                });
+            }
+
+            // Create a new authentication ticket holding the user identity.
+            var ticket = new AuthenticationTicket(
+                new ClaimsPrincipal(identity),
+                new AuthenticationProperties(),
+                options.Value.AuthenticationScheme);
+
+            ticket.SetResources(request.GetResources());
+            ticket.SetScopes(request.GetScopes());
+
+            // Returning a SignInResult will ask ASOS to serialize the specified identity to build appropriate tokens.
+            // Note: you should always make sure the identities you return contain ClaimTypes.NameIdentifier claim.
+            // In this sample, the identity always contains the name identifier returned by the external provider.
+            return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
         }
 
         [Authorize(Policy = "COOKIES")]
