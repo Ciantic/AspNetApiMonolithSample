@@ -1,15 +1,15 @@
 {
-    "buildOptions": {
-        "emitEntryPoint": true,
-        "debugType": "portable",
-        "preserveCompilationContext": true,
-        "copyToOutput": [
-            "appsettings.json"
-        ]
-    },
-    "publishOptions": {
-        "include": ["wwwroot"]
-    },
+  "buildOptions": {
+    "emitEntryPoint": true,
+    "debugType": "portable",
+    "preserveCompilationContext": true,
+    "copyToOutput": [
+      "appsettings.json"
+    ]
+  },
+  "publishOptions": {
+    "include": [ "wwwroot" ]
+  },
   "dependencies": {
     "Microsoft.NETCore.App": "1-*",
     "Microsoft.Extensions.Logging.Console": "1.0.0-*",
@@ -37,23 +37,23 @@
     "Swashbuckle.SwaggerGen": "6.0.0-beta9",
     "Swashbuckle.SwaggerUi": "6.0.0-beta9"
   },
-    "frameworks": {
-        "netcoreapp1.0": {
-            "imports": [ 
-                "portable-net45+wp80+win8+wpa81+dnxcore50",
-                "portable-net45+win8+wp8+wpa81",
-                "portable-net45+win8+wp8"
-            ]
-        }
-    },
-    "runtimes": {
-        "win10-x64": {}
-    },
-    "tools": {
-        "Microsoft.DotNet.Watcher.Tools": {
-            "version": "1.0.0-*",
-            "imports": "portable-net451+win8"
-        }
-    },
-    "version": "1.0.0"
+  "frameworks": {
+    "netcoreapp1.0": {
+      "imports": [
+        "portable-net45+wp80+win8+wpa81+dnxcore50",
+        "portable-net45+win8+wp8+wpa81",
+        "portable-net45+win8+wp8"
+      ]
+    }
+  },
+  "runtimes": {
+    "win10-x64": { }
+  },
+  "tools": {
+    "Microsoft.DotNet.Watcher.Tools": {
+      "version": "1.0.0-*",
+      "imports": "portable-net451+win8"
+    }
+  },
+  "version": "1.0.0"
 }
