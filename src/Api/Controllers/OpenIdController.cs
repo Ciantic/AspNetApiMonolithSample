@@ -50,13 +50,14 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpGet("[action]")]
-        public IActionResult Login()
-        {
+        public IActionResult Login([FromQuery] LoginErrors error = LoginErrors.Ok)
+        { 
             return new ContentResult()
             {
                 Content = $@"<!DOCTYPE html>
                     <html>
                     <body>
+                    {error.ToString()}
                     <form method=""POST"">
                     <input type=""text"" name=""Email"" />   
                     <input type=""password"" name=""Password"" />
@@ -64,6 +65,24 @@ namespace AspNetApiMonolithSample.Controllers
                     ",
                 ContentType = "text/html"
             };
+        }
+
+        public enum LoginErrors
+        {
+            Ok,
+            // Authorize errors
+            ResponseError,
+            RequestNull,
+            InvalidClient,
+
+            // Login errors
+            RedirectMissing,
+            LockedOut,
+            NotAllowed,
+            Unknown,
+
+            // Accept errors
+            UserNotFound,
         }
 
         public class LoginViewModel
@@ -80,7 +99,7 @@ namespace AspNetApiMonolithSample.Controllers
             public bool RememberMe { get; set; }
         }
 
-        [HttpPost("Login")]
+        [HttpPost("Login")] // TODO: Anti forgery token
         public async Task<IActionResult> LoginPost(LoginViewModel model, [FromServices] SignInManager<User> signInManager, [FromQuery] string returnUrl = "")
         {
             var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
@@ -89,33 +108,33 @@ namespace AspNetApiMonolithSample.Controllers
                 if (returnUrl.Length > 0) {
                     return Redirect(returnUrl);
                 }
-                return new OkObjectResult("LOGGED IN");
+                return RedirectToAction("Login", new { error = LoginErrors.RedirectMissing });
             }
             else if (result.RequiresTwoFactor)
             {
-
-                //return RedirectToAction(nameof(SendCode), new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
-                return new OkObjectResult("TWO FACTOR");
+                //return RedirectToAction(nameof(SendCode), 
+                //    new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
+                return new OkObjectResult("TODO: TWO FACTOR");
             }
             else if (result.IsLockedOut)
             {
-                return new BadRequestObjectResult("LOCKED OUT");
+                return RedirectToAction("Login", new { error = LoginErrors.LockedOut });
             }
             else if (result.IsNotAllowed)
             {
-                return new BadRequestObjectResult("NOT ALLOWED");
+                return RedirectToAction("Login", new { error = LoginErrors.NotAllowed });
             }
 
-            return new BadRequestObjectResult("UNKNONW");
+            return RedirectToAction("Login", new { error = LoginErrors.Unknown });
         }
 
         // TODO REPLICATE Authorize, Accept at least, even in same
         // https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs
         [HttpGet("[action]"), HttpPost("[action]")]
         public virtual async Task<IActionResult> Authorize(
-            [FromServices] UserManager<User> users,
+            [FromServices] OpenIddictUserManager<User> users,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
-            [FromServices] OpenIddictTokenManager<OpenIddictToken, User> tokens,
+            [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
             [FromServices] IOptions<OpenIddictOptions> options,
             [FromServices] IOptions<List<OpenIddictApplication>> officialApplications
             )
@@ -125,13 +144,14 @@ namespace AspNetApiMonolithSample.Controllers
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
-                return new BadRequestObjectResult("ERROR");
+                // TODO: Is response required to be passed here?
+                return RedirectToAction("Login", new { error = LoginErrors.ResponseError });
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return new BadRequestObjectResult("ERROR REQUEST");
+                return RedirectToAction("Login", new { error = LoginErrors.RequestNull });
             }
 
             if (!User.Identities.Any(identity => identity.IsAuthenticated))
@@ -148,12 +168,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
-                return new BadRequestObjectResult(new OpenIdConnectMessage
-                {
-                    Error = OpenIdConnectConstants.Errors.InvalidClient,
-                    ErrorDescription = "Details concerning the calling client application cannot be found in the database"
-                });
-
+                return RedirectToAction("Login", new { error = LoginErrors.InvalidClient });
             }
 
             // Check if the application is official (registered in settings) and accept any request by default
@@ -161,56 +176,62 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 return await Accept(users, applications, tokens, options);
             }
-            return new ObjectResult("HUH?");
+
+            return RedirectToAction("Accept");
         }
 
-        [Authorize, HttpPost, ValidateAntiForgeryToken]
+        [HttpGet("[action]")]
+        public IActionResult Accept()
+        {
+
+            return new ContentResult()
+            {
+                Content = $@"<!DOCTYPE html>
+                    <html>
+                    <body>
+                    <form method=""POST"">
+                    <button type=""submit""></button>
+                ",
+                ContentType = "text/html"
+            };
+        }
+
+        [Authorize, HttpPost] // TODO: Anti forgery token
         public virtual async Task<IActionResult> Accept(
-            [FromServices] UserManager<User> users,
+            [FromServices] OpenIddictUserManager<User> users,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
-            [FromServices] OpenIddictTokenManager<OpenIddictToken, User> tokens,
+            [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
             [FromServices] IOptions<OpenIddictOptions> options)
         {
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
-                return new BadRequestObjectResult(response);
+                // TODO: Is response required to be passed here?
+                return RedirectToAction("Login", new { error = LoginErrors.ResponseError });
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return new BadRequestObjectResult(new OpenIdConnectMessage
-                {
-                    Error = OpenIdConnectConstants.Errors.ServerError,
-                    ErrorDescription = "An internal error has occurred"
-                });
+                return RedirectToAction("Login", new { error = LoginErrors.RequestNull });
             }
 
             // Retrieve the user data using the unique identifier.
             var user = await users.GetUserAsync(User);
             if (user == null)
             {
-                return new BadRequestObjectResult(new OpenIdConnectMessage
-                {
-                    Error = OpenIdConnectConstants.Errors.ServerError,
-                    ErrorDescription = "An internal error has occurred"
-                });
+                return RedirectToAction("Login", new { error = LoginErrors.UserNotFound });
             }
 
             // Create a new ClaimsIdentity containing the claims that
             // will be used to create an id_token, a token or a code.
-            var identity = await tokens.CreateIdentityAsync(user, request.GetScopes());
+            var identity = await users.CreateIdentityAsync(user, request.GetScopes());
             Debug.Assert(identity != null);
 
             var application = await applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
-                return new BadRequestObjectResult(new OpenIdConnectMessage
-                {
-                    Error = OpenIdConnectConstants.Errors.InvalidClient,
-                    ErrorDescription = "Details concerning the calling client application cannot be found in the database"
-                });
+                return RedirectToAction("Login", new { error = LoginErrors.InvalidClient });
             }
 
             // Create a new authentication ticket holding the user identity.

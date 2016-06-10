@@ -65,7 +65,6 @@ namespace AspNetApiMonolithSample
             });
 
             services.AddIdentity<User, Role>(opts => {
-                //opts.Cookies.ApplicationCookieAuthenticationScheme
                 opts.Cookies.ApplicationCookie.LoginPath = "/OpenId/Login";
                 opts.Cookies.ApplicationCookie.LogoutPath = "/OpenId/Logout";
                 opts.Cookies.ApplicationCookie.CookiePath = "/OpenId/";
@@ -161,26 +160,6 @@ namespace AspNetApiMonolithSample
             }
 
             app.UseOpenIddict();
-            /*
-            app.UseOpenIddictCore(builder =>
-            {
-                builder.Options.UseJwtTokens();
-
-                if (env.IsDevelopment())
-                {
-                    builder.Options.AllowInsecureHttp = true;
-                }
-                
-                builder.Options.ApplicationCanDisplayErrors = true;
-                
-                // ConfigurationEndpointPath and CryptographyEndpointPath has well-known uris, need not to be ovewritten
-                builder.Options.AuthorizationEndpointPath = "/OpenId/Authorize"; 
-                builder.Options.TokenEndpointPath = "/OpenId/_token";
-                builder.Options.IntrospectionEndpointPath = "/OpenId/_introspection";
-                // builder.Options.LogoutEndpointPath = "/OpenId/Logout";
-                // builder.Options.UserinfoEndpointPath = Configuration["OpenIddict:UserinfoEndpointPath"];
-            });
-            */
 
             // use JWT bearer authentication
             app.UseJwtBearerAuthentication(new JwtBearerOptions()
