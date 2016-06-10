@@ -34,8 +34,8 @@
     "Microsoft.EntityFrameworkCore.SQLite": "1.0.0-*",
     "Microsoft.Extensions.Options.ConfigurationExtensions": "1.0.0-*",
     "OpenIddict": "1.0.0-*",
-    "Swashbuckle.SwaggerGen": "6.0.0-beta9",
-    "Swashbuckle.SwaggerUi": "6.0.0-beta9"
+    "Swashbuckle.SwaggerGen": "6.0.0-beta*",
+    "Swashbuckle.SwaggerUi": "6.0.0-beta*"
   },
   "frameworks": {
     "netcoreapp1.0": {

@@ -27,6 +27,12 @@ using Microsoft.Extensions.Options;
 
 namespace AspNetApiMonolithSample
 {
+    public class BrandingHtml
+    {
+        public string Login { get; set; } = "";
+        public string Authorize { get; set; } = "";
+    }
+
     public class Startup
     {
         private SqliteConnection inMemorySqliteConnection;
@@ -58,7 +64,7 @@ namespace AspNetApiMonolithSample
                     inMemorySqliteConnection.Open();
                     options.UseSqlite(inMemorySqliteConnection);
                 }
-                else 
+                else
                 {
                     options.UseSqlServer(Configuration.GetOrFail("Data:DefaultConnection:ConnectionString"));
                 }
@@ -76,7 +82,11 @@ namespace AspNetApiMonolithSample
                 .SetTokenEndpointPath("/OpenId/token")
                 .SetAuthorizationEndpointPath("/OpenId/Authorize")
                 .SetLogoutEndpointPath("/OpenId/Logout")
-                .UseJsonWebTokens();
+                .UseJsonWebTokens()
+                .Configure(opts =>
+                {
+                    opts.ApplicationCanDisplayErrors = true;
+                });
 
             if (env.IsDevelopment())
             {
@@ -143,6 +153,7 @@ namespace AspNetApiMonolithSample
             
             services.AddTransient<IThingieStore, ThingieStore>();
             services.Configure<List<OpenIddictApplication>>(Configuration.GetSection("Applications"));
+            services.Configure<BrandingHtml>(Configuration.GetSection("BrandingHtml"));
         }
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
@@ -171,7 +182,7 @@ namespace AspNetApiMonolithSample
                 Authority = Configuration.GetOrFail("Jwt:Authority"),
             });
 
-            List<OpenIddictApplication> openIddictApps = app.ApplicationServices.GetRequiredService<IOptions<List<OpenIddictApplication>>>().Value;
+            // List<OpenIddictApplication> openIddictApps = app.ApplicationServices.GetRequiredService<IOptions<List<OpenIddictApplication>>>().Value;
 
             // TODO: REGISTER OFFICIAL APPS HERE
 

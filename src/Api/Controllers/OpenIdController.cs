@@ -50,18 +50,21 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpGet("[action]")]
-        public IActionResult Login([FromQuery] LoginErrors error = LoginErrors.Ok)
+        public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml, [FromQuery] LoginErrors error = LoginErrors.Ok)
         { 
             return new ContentResult()
             {
                 Content = $@"<!DOCTYPE html>
                     <html>
+                    <head>
+                    <script>var LOGIN_ERROR = ""{error.ToString()}"";</script>
+                    {brandingHtml?.Value?.Login}
+                    </head>
                     <body>
-                    {error.ToString()}
                     <form method=""POST"">
-                    <input type=""text"" name=""Email"" />   
-                    <input type=""password"" name=""Password"" />
-                    <button type=""submit""></button>
+                    <input type=""text"" name=""Email"" placeholder=""EMAIL"" />   
+                    <input type=""password"" name=""Password"" placeholder=""PASSWORD"" />
+                    <button type=""submit"">LOGIN</button>
                     ",
                 ContentType = "text/html"
             };
@@ -108,7 +111,7 @@ namespace AspNetApiMonolithSample.Controllers
                 if (returnUrl.Length > 0) {
                     return Redirect(returnUrl);
                 }
-                return RedirectToAction("Login", new { error = LoginErrors.RedirectMissing });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.RedirectMissing });
             }
             else if (result.RequiresTwoFactor)
             {
@@ -118,14 +121,14 @@ namespace AspNetApiMonolithSample.Controllers
             }
             else if (result.IsLockedOut)
             {
-                return RedirectToAction("Login", new { error = LoginErrors.LockedOut });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.LockedOut });
             }
             else if (result.IsNotAllowed)
             {
-                return RedirectToAction("Login", new { error = LoginErrors.NotAllowed });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.NotAllowed });
             }
 
-            return RedirectToAction("Login", new { error = LoginErrors.Unknown });
+            return RedirectToAction(nameof(Login), new { error = LoginErrors.Unknown });
         }
 
         // TODO REPLICATE Authorize, Accept at least, even in same
@@ -136,7 +139,8 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
             [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
             [FromServices] IOptions<OpenIddictOptions> options,
-            [FromServices] IOptions<List<OpenIddictApplication>> officialApplications
+            [FromServices] IOptions<List<OpenIddictApplication>> officialApplications,
+            [FromServices] IOptions<BrandingHtml> brandingHtml
             )
         {
             // var services = HttpContext.RequestServices.GetRequiredService<OpenIddictServices<User, OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken>>();
@@ -151,7 +155,7 @@ namespace AspNetApiMonolithSample.Controllers
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction("Login", new { error = LoginErrors.RequestNull });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.RequestNull });
             }
 
             if (!User.Identities.Any(identity => identity.IsAuthenticated))
@@ -168,7 +172,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
-                return RedirectToAction("Login", new { error = LoginErrors.InvalidClient });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.InvalidClient });
             }
 
             // Check if the application is official (registered in settings) and accept any request by default
@@ -177,24 +181,30 @@ namespace AspNetApiMonolithSample.Controllers
                 return await Accept(users, applications, tokens, options);
             }
 
-            return RedirectToAction("Accept");
-        }
+            /*
+            @foreach (var parameter in Model.Item1.Parameters) {
+                <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
+            }
 
-        [HttpGet("[action]")]
-        public IActionResult Accept()
-        {
-
+            <input formaction="@Url.Action("Accept")" class="btn btn-lg btn-success" name="Authorize" type="submit" value="Yes" />
+            <input formaction="@Url.Action("Deny")" class="btn btn-lg btn-danger" name="Deny" type="submit" value="No" />
+             */
             return new ContentResult()
             {
                 Content = $@"<!DOCTYPE html>
                     <html>
+                    <head>
+                    {brandingHtml?.Value?.Authorize}
+                    </head>
                     <body>
                     <form method=""POST"">
-                    <button type=""submit""></button>
+                    <button formaction=""{Url.Action(nameof(Accept))}"" type=""submit"">ACCEPT</button>
+                    <button formaction=""{Url.Action(nameof(Deny))}"" type=""submit"">DENY</button>
                 ",
                 ContentType = "text/html"
             };
         }
+
 
         [Authorize, HttpPost] // TODO: Anti forgery token
         public virtual async Task<IActionResult> Accept(
@@ -207,20 +217,20 @@ namespace AspNetApiMonolithSample.Controllers
             if (response != null)
             {
                 // TODO: Is response required to be passed here?
-                return RedirectToAction("Login", new { error = LoginErrors.ResponseError });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.ResponseError });
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction("Login", new { error = LoginErrors.RequestNull });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.RequestNull });
             }
 
             // Retrieve the user data using the unique identifier.
             var user = await users.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToAction("Login", new { error = LoginErrors.UserNotFound });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.UserNotFound });
             }
 
             // Create a new ClaimsIdentity containing the claims that
@@ -231,7 +241,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
-                return RedirectToAction("Login", new { error = LoginErrors.InvalidClient });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.InvalidClient });
             }
 
             // Create a new authentication ticket holding the user identity.
@@ -247,6 +257,33 @@ namespace AspNetApiMonolithSample.Controllers
             // Note: you should always make sure the identities you return contain ClaimTypes.NameIdentifier claim.
             // In this sample, the identity always contains the name identifier returned by the external provider.
             return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+        }
+
+        [Authorize, HttpPost, ValidateAntiForgeryToken]
+        public virtual IActionResult Deny([FromServices] IOptions<OpenIddictOptions> options)
+        {
+            var response = HttpContext.GetOpenIdConnectResponse();
+            if (response != null)
+            {
+                return RedirectToAction(nameof(Login), new
+                {
+                    error = LoginErrors.ResponseError
+                });
+            }
+
+            var request = HttpContext.GetOpenIdConnectRequest();
+            if (request == null)
+            {
+                return RedirectToAction(nameof(Login), new
+                {
+                    error = LoginErrors.RequestNull
+                });
+            }
+
+            // Notify ASOS that the authorization grant has been denied by the resource owner.
+            // Note: OpenIdConnectServerHandler will automatically take care of redirecting
+            // the user agent to the client application using the appropriate response_mode.
+            return Forbid(options.Value.AuthenticationScheme);
         }
 
         [Authorize(Policy = "COOKIES")]
