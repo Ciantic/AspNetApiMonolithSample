@@ -30,7 +30,6 @@ namespace AspNetApiMonolithSample.Controllers
     [Route("[controller]")]
     public class OpenIdController : ControllerBase
     {
-
         private readonly ILogger _logger;
 
         public OpenIdController(
@@ -40,13 +39,16 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpGet("[action]")]
-        public async Task<IActionResult> Logout([FromServices] SignInManager<User> signInManager, [FromQuery] string returnUrl = "")
+        public async Task<IActionResult> Logout(
+            [FromServices] SignInManager<User> signInManager,
+            [FromServices] IOptions<OpenIddictOptions> options,
+            [FromQuery] string returnUrl = "")
         {
             await signInManager.SignOutAsync();
             if (returnUrl.Length > 0) {
                 return Redirect(returnUrl);
             }
-            return new OkObjectResult("LOGGED OUT");
+            return SignOut(options.Value.AuthenticationScheme);
         }
 
         [HttpGet("[action]")]
@@ -181,7 +183,8 @@ namespace AspNetApiMonolithSample.Controllers
                 return await Accept(users, applications, tokens, options);
             }
 
-            /*
+            /* https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs#L68
+             * https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/Views/Shared/Authorize.cshtml
             @foreach (var parameter in Model.Item1.Parameters) {
                 <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
             }
@@ -204,7 +207,6 @@ namespace AspNetApiMonolithSample.Controllers
                 ContentType = "text/html"
             };
         }
-
 
         [Authorize, HttpPost] // TODO: Anti forgery token
         public virtual async Task<IActionResult> Accept(
