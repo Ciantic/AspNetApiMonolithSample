@@ -7,23 +7,16 @@ using AspNetApiMonolithSample.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Linq;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Authentication;
 using AspNet.Security.OpenIdConnect.Extensions;
 using OpenIddict;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using System;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using OpenIddict.Infrastructure;
-using AspNetApiMonolithSample.EntityFramework;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
+using System.Net;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -53,7 +46,7 @@ namespace AspNetApiMonolithSample.Controllers
 
         [HttpGet("[action]")]
         public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml, [FromQuery] LoginErrors error = LoginErrors.Ok)
-        { 
+        {
             return new ContentResult()
             {
                 Content = $@"<!DOCTYPE html>
@@ -64,8 +57,9 @@ namespace AspNetApiMonolithSample.Controllers
                     </head>
                     <body>
                     <form method=""POST"">
-                    <input type=""text"" name=""Email"" placeholder=""EMAIL"" />   
-                    <input type=""password"" name=""Password"" placeholder=""PASSWORD"" />
+                    <input type=""text"" name=""Email"" placeholder=""EMAIL"" required />   
+                    <input type=""password"" name=""Password"" placeholder=""PASSWORD"" required />
+                    <input type=""checkbox"" name=""RememberMe"" />
                     <button type=""submit"">LOGIN</button>
                     ",
                 ContentType = "text/html"
@@ -84,7 +78,7 @@ namespace AspNetApiMonolithSample.Controllers
             RedirectMissing,
             LockedOut,
             NotAllowed,
-            Unknown,
+            UsernameOrPassword,
 
             // Accept errors
             UserNotFound,
@@ -130,13 +124,14 @@ namespace AspNetApiMonolithSample.Controllers
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.NotAllowed });
             }
 
-            return RedirectToAction(nameof(Login), new { error = LoginErrors.Unknown });
+            return RedirectToAction(nameof(Login), new { error = LoginErrors.UsernameOrPassword });
         }
 
         // TODO REPLICATE Authorize, Accept at least, even in same
         // https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs
         [HttpGet("[action]"), HttpPost("[action]")]
         public virtual async Task<IActionResult> Authorize(
+            [FromServices] SignInManager<User> signInManager,
             [FromServices] OpenIddictUserManager<User> users,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
             [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
@@ -150,8 +145,13 @@ namespace AspNetApiMonolithSample.Controllers
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
-                // TODO: Is response required to be passed here?
+                await signInManager.SignOutAsync();
+                // TODO: What then? Login dialog without ability go forward?
                 return RedirectToAction("Login", new { error = LoginErrors.ResponseError });
+                //return Forbid();
+                //return SignOut(options.Value.AuthenticationScheme);
+                // TODO: Is response required to be passed here?
+                // return RedirectToAction("Login", new { error = LoginErrors.ResponseError });
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
@@ -183,6 +183,15 @@ namespace AspNetApiMonolithSample.Controllers
                 return await Accept(users, applications, tokens, options);
             }
 
+            var appName = await applications.GetDisplayNameAsync(application);
+            var inputs = "";
+            foreach (var item in request.Parameters)
+            { 
+                var key = WebUtility.HtmlEncode(item.Key);
+                var value = WebUtility.HtmlEncode(item.Value);
+                inputs = inputs + $@"<input type=""hidden"" name=""{key}"" value=""{value}"" />";
+            }
+
             /* https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs#L68
              * https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/Views/Shared/Authorize.cshtml
             @foreach (var parameter in Model.Item1.Parameters) {
@@ -201,6 +210,7 @@ namespace AspNetApiMonolithSample.Controllers
                     </head>
                     <body>
                     <form method=""POST"">
+                    {inputs}
                     <button formaction=""{Url.Action(nameof(Accept))}"" type=""submit"">ACCEPT</button>
                     <button formaction=""{Url.Action(nameof(Deny))}"" type=""submit"">DENY</button>
                 ",
@@ -208,7 +218,7 @@ namespace AspNetApiMonolithSample.Controllers
             };
         }
 
-        [Authorize, HttpPost] // TODO: Anti forgery token
+        [Authorize, HttpPost("[action]")] // TODO: Anti forgery token
         public virtual async Task<IActionResult> Accept(
             [FromServices] OpenIddictUserManager<User> users,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
@@ -261,8 +271,8 @@ namespace AspNetApiMonolithSample.Controllers
             return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
         }
 
-        [Authorize, HttpPost, ValidateAntiForgeryToken]
-        public virtual IActionResult Deny([FromServices] IOptions<OpenIddictOptions> options)
+        [Authorize, HttpPost("[action]"), ValidateAntiForgeryToken]
+        public IActionResult Deny([FromServices] IOptions<OpenIddictOptions> options)
         {
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
