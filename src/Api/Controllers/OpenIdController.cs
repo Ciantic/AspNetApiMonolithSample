@@ -17,6 +17,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using System.Net;
+using Newtonsoft.Json;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -44,28 +45,6 @@ namespace AspNetApiMonolithSample.Controllers
             return SignOut(options.Value.AuthenticationScheme);
         }
 
-        [HttpGet("[action]")]
-        public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml, [FromQuery] LoginErrors error = LoginErrors.Ok)
-        {
-            return new ContentResult()
-            {
-                Content = $@"<!DOCTYPE html>
-                    <html>
-                    <head>
-                    <script>var LOGIN_ERROR = ""{error.ToString()}"";</script>
-                    {brandingHtml?.Value?.Login}
-                    </head>
-                    <body>
-                    <form method=""POST"">
-                    <input type=""text"" name=""Email"" placeholder=""EMAIL"" required />   
-                    <input type=""password"" name=""Password"" placeholder=""PASSWORD"" required />
-                    <input type=""checkbox"" name=""RememberMe"" />
-                    <button type=""submit"">LOGIN</button>
-                    ",
-                ContentType = "text/html"
-            };
-        }
-
         public enum LoginErrors
         {
             Ok,
@@ -84,6 +63,41 @@ namespace AspNetApiMonolithSample.Controllers
             UserNotFound,
         }
 
+        [HttpGet("[action]")]
+        public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml, [FromQuery] LoginErrors error = LoginErrors.Ok, [FromQuery] string ReturnUrl = "")
+        {
+            var data = JsonConvert.SerializeObject(new
+            {
+                Error = error.ToString(),
+                FormMethod = "POST",
+                FormAction = Url.Action(nameof(LoginPost)),
+                FormData = new
+                {
+                    ReturnUrl = ReturnUrl,
+                    Email = "",
+                    Password = "",
+                    RememberMe = "",
+                }
+            });
+            return new ContentResult()
+            {
+                Content = $@"<!DOCTYPE html>
+                    <html>
+                    <head>
+                    <script>var LOGIN_DATA = {data};</script>
+                    {brandingHtml?.Value?.Login}
+                    </head>
+                    <body>
+                    <form action=""{Url.Action(nameof(LoginPost), new { ReturnUrl = ReturnUrl })}"" method=""POST"">
+                    <input type=""email"" name=""Email"" placeholder=""EMAIL"" required />
+                    <input type=""password"" name=""Password"" placeholder=""PASSWORD"" required />
+                    <input type=""checkbox"" name=""RememberMe"" value=""1"" title=""REMEMBER_ME"" />
+                    <button type=""submit"">LOGIN</button>
+                    ",
+                ContentType = "text/html"
+            };
+        }
+
         public class LoginViewModel
         {
             [Required]
@@ -99,13 +113,13 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpPost("Login")] // TODO: Anti forgery token
-        public async Task<IActionResult> LoginPost(LoginViewModel model, [FromServices] SignInManager<User> signInManager, [FromQuery] string returnUrl = "")
+        public async Task<IActionResult> LoginPost(LoginViewModel model, [FromServices] SignInManager<User> signInManager, [FromQuery] string ReturnUrl = "")
         {
             var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
             {
-                if (returnUrl.Length > 0) {
-                    return Redirect(returnUrl);
+                if (ReturnUrl.Length > 0) {
+                    return Redirect(ReturnUrl);
                 }
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.RedirectMissing });
             }
@@ -117,14 +131,14 @@ namespace AspNetApiMonolithSample.Controllers
             }
             else if (result.IsLockedOut)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.LockedOut });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.LockedOut, ReturnUrl = ReturnUrl });
             }
             else if (result.IsNotAllowed)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.NotAllowed });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.NotAllowed, ReturnUrl = ReturnUrl });
             }
 
-            return RedirectToAction(nameof(Login), new { error = LoginErrors.UsernameOrPassword });
+            return RedirectToAction(nameof(Login), new { error = LoginErrors.UsernameOrPassword, ReturnUrl = ReturnUrl });
         }
 
         // TODO REPLICATE Authorize, Accept at least, even in same
@@ -145,9 +159,13 @@ namespace AspNetApiMonolithSample.Controllers
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
+                //response.ErrorUri
                 await signInManager.SignOutAsync();
+                // return Redirect(response.RedirectUri);
+
                 // TODO: What then? Login dialog without ability go forward?
                 return RedirectToAction("Login", new { error = LoginErrors.ResponseError });
+
                 //return Forbid();
                 //return SignOut(options.Value.AuthenticationScheme);
                 // TODO: Is response required to be passed here?
@@ -178,11 +196,12 @@ namespace AspNetApiMonolithSample.Controllers
             }
 
             // Check if the application is official (registered in settings) and accept any request by default
+            /*
             if (officialApplications.Value.Where(x => x.Id == request.ClientId).Count() != 0)
             {
                 return await Accept(users, applications, tokens, options);
             }
-
+            */
             var appName = await applications.GetDisplayNameAsync(application);
             var inputs = "";
             foreach (var item in request.Parameters)
@@ -191,7 +210,19 @@ namespace AspNetApiMonolithSample.Controllers
                 var value = WebUtility.HtmlEncode(item.Value);
                 inputs = inputs + $@"<input type=""hidden"" name=""{key}"" value=""{value}"" />";
             }
-
+            var data = JsonConvert.SerializeObject(new
+            {
+                FormMethod = "POST",
+                FormActionAccept = Url.Action(nameof(Accept)),
+                FormActionDeny = Url.Action(nameof(Deny)),
+                ApplicationName = appName,
+                FormData = new
+                {
+                    Email = "",
+                    Password = "",
+                    RememberMe = "",
+                }
+            });
             /* https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs#L68
              * https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/Views/Shared/Authorize.cshtml
             @foreach (var parameter in Model.Item1.Parameters) {
@@ -202,27 +233,28 @@ namespace AspNetApiMonolithSample.Controllers
             <input formaction="@Url.Action("Deny")" class="btn btn-lg btn-danger" name="Deny" type="submit" value="No" />
              */
             return new ContentResult()
-            {
+            { 
                 Content = $@"<!DOCTYPE html>
                     <html>
                     <head>
+                    <script>var AUTHORIZE_DATA = {data};</script>
                     {brandingHtml?.Value?.Authorize}
                     </head>
                     <body>
-                    <form method=""POST"">
+                    <form enctype=""application/x-www-form-urlencoded"" method=""POST"">
                     {inputs}
-                    <button formaction=""{Url.Action(nameof(Accept))}"" type=""submit"">ACCEPT</button>
-                    <button formaction=""{Url.Action(nameof(Deny))}"" type=""submit"">DENY</button>
+                    <div>{WebUtility.HtmlEncode(appName)}</div>
+                    <button formaction=""{Url.Action(nameof(Accept))}"" name=""Authorize"" value=""Yes"" type=""submit"" />ACCEPT</button>
+                    <button formaction=""{Url.Action(nameof(Deny))}"" name=""Deny"" value=""No"" type=""submit"">DENY</button>
                 ",
                 ContentType = "text/html"
             };
         }
 
-        [Authorize, HttpPost("[action]")] // TODO: Anti forgery token
+        [Authorize(Policy = "COOKIES"), HttpPost("[action]")] // TODO: Anti forgery token
         public virtual async Task<IActionResult> Accept(
             [FromServices] OpenIddictUserManager<User> users,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
-            [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
             [FromServices] IOptions<OpenIddictOptions> options)
         {
             var response = HttpContext.GetOpenIdConnectResponse();
@@ -271,7 +303,7 @@ namespace AspNetApiMonolithSample.Controllers
             return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
         }
 
-        [Authorize, HttpPost("[action]"), ValidateAntiForgeryToken]
+        [Authorize(Policy = "COOKIES"), HttpPost("[action]"), ValidateAntiForgeryToken]
         public IActionResult Deny([FromServices] IOptions<OpenIddictOptions> options)
         {
             var response = HttpContext.GetOpenIdConnectResponse();
