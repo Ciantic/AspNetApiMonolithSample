@@ -251,7 +251,7 @@ namespace AspNetApiMonolithSample.Controllers
             };
         }
 
-        [Authorize(Policy = "COOKIES"), HttpPost("[action]")] // TODO: Anti forgery token
+        [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")] // TODO: Anti forgery token
         public virtual async Task<IActionResult> Accept(
             [FromServices] OpenIddictUserManager<User> users,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
@@ -303,7 +303,7 @@ namespace AspNetApiMonolithSample.Controllers
             return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
         }
 
-        [Authorize(Policy = "COOKIES"), HttpPost("[action]"), ValidateAntiForgeryToken]
+        [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]"), ValidateAntiForgeryToken]
         public IActionResult Deny([FromServices] IOptions<OpenIddictOptions> options)
         {
             var response = HttpContext.GetOpenIdConnectResponse();
