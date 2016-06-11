@@ -1,33 +1,33 @@
 {
-    "buildOptions": {
-        "debugType": "portable",
-        "preserveCompilationContext": true
-    },
-    "dependencies": {
-        "Api": "1-*",
-	    "xunit": "2.1.0-*",
-	    "dotnet-test-xunit": "1.0.0-*"
-    },
-    "frameworks": {
-        "netcoreapp1.0": {
-            "imports": [ 
-                "portable-net45+wp80+win8+wpa81+dnxcore50",
-                "portable-net45+win8+wp8+wpa81",
-                "portable-net45+win8+wp8",
-                "dnxcore50",
-                "portable-net45+win8"
-            ]
-        }
-    },
-    "testRunner": "xunit",
-    "runtimes": {
-        "win10-x64": {}
-    },
-    "tools": {
-        "Microsoft.DotNet.Watcher.Tools": {
-            "version": "1.0.0-*",
-            "imports": "portable-net451+win8"
-        }
-    },
-    "version": "1.0.0"
+  "buildOptions": {
+    "debugType": "portable",
+    "preserveCompilationContext": true
+  },
+  "dependencies": {
+    "Api": "1-*",
+    "xunit": "2.1.0-*",
+    "dotnet-test-xunit": "1.0.0-*"
+  },
+  "frameworks": {
+    "netcoreapp1.0": {
+      "imports": [
+        "portable-net45+wp80+win8+wpa81+dnxcore50",
+        "portable-net45+win8+wp8+wpa81",
+        "portable-net45+win8+wp8",
+        "dnxcore50",
+        "portable-net45+win8"
+      ]
+    }
+  },
+  "testRunner": "xunit",
+  "runtimes": {
+    "win10-x64": { }
+  },
+  "tools": {
+    "Microsoft.DotNet.Watcher.Tools": {
+      "version": "1.0.0-*",
+      "imports": "portable-net451+win8"
+    }
+  },
+  "version": "1.0.0"
 }

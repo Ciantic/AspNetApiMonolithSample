@@ -113,8 +113,21 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpPost("Login")] // TODO: Anti forgery token
-        public async Task<IActionResult> LoginPost(LoginViewModel model, [FromServices] SignInManager<User> signInManager, [FromQuery] string ReturnUrl = "")
+        public async Task<IActionResult> LoginPost(
+            [FromBody] LoginViewModel model,
+            [FromServices] UserManager<User> userManager,
+            [FromServices] SignInManager<User> signInManager, 
+            [FromQuery] string ReturnUrl = "")
         {
+            var user = await userManager.FindByEmailAsync(model.Email);
+            if (user != null)
+            {
+                if (!await userManager.IsEmailConfirmedAsync(user))
+                {
+                    ModelState.AddModelError(nameof(model.Email), "Email is not confirmed");
+                    throw new ValidationErrorResult(ModelState).Exception();
+                }
+            }
             var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
             {
@@ -195,13 +208,12 @@ namespace AspNetApiMonolithSample.Controllers
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.InvalidClient });
             }
 
-            // Check if the application is official (registered in settings) and accept any request by default
-            /*
+            // Check if the application is official (registered in settings) and accept any request by 
             if (officialApplications.Value.Where(x => x.Id == request.ClientId).Count() != 0)
             {
-                return await Accept(users, applications, tokens, options);
+                return await Accept(users, applications, options);
             }
-            */
+            
             var appName = await applications.GetDisplayNameAsync(application);
             var inputs = "";
             foreach (var item in request.Parameters)
@@ -223,15 +235,7 @@ namespace AspNetApiMonolithSample.Controllers
                     RememberMe = "",
                 }
             });
-            /* https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs#L68
-             * https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/Views/Shared/Authorize.cshtml
-            @foreach (var parameter in Model.Item1.Parameters) {
-                <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
-            }
 
-            <input formaction="@Url.Action("Accept")" class="btn btn-lg btn-success" name="Authorize" type="submit" value="Yes" />
-            <input formaction="@Url.Action("Deny")" class="btn btn-lg btn-danger" name="Deny" type="submit" value="No" />
-             */
             return new ContentResult()
             { 
                 Content = $@"<!DOCTYPE html>
@@ -244,8 +248,8 @@ namespace AspNetApiMonolithSample.Controllers
                     <form enctype=""application/x-www-form-urlencoded"" method=""POST"">
                     {inputs}
                     <div>{WebUtility.HtmlEncode(appName)}</div>
-                    <button formaction=""{Url.Action(nameof(Accept))}"" name=""Authorize"" value=""Yes"" type=""submit"" />ACCEPT</button>
-                    <button formaction=""{Url.Action(nameof(Deny))}"" name=""Deny"" value=""No"" type=""submit"">DENY</button>
+                    <button formaction=""{Url.Action(nameof(Accept))}"" type=""submit"" />ACCEPT</button>
+                    <button formaction=""{Url.Action(nameof(Deny))}"" type=""submit"">DENY</button>
                 ",
                 ContentType = "text/html"
             };
@@ -303,7 +307,7 @@ namespace AspNetApiMonolithSample.Controllers
             return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
         }
 
-        [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]"), ValidateAntiForgeryToken]
+        [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")]
         public IActionResult Deny([FromServices] IOptions<OpenIddictOptions> options)
         {
             var response = HttpContext.GetOpenIdConnectResponse();

@@ -13,7 +13,7 @@ namespace AspNetApiMonolithSample.Controllers
 {
     [Authorize]
     [Route("[controller]")]
-    public class AccountController
+    public class AccountController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
 
@@ -50,13 +50,13 @@ namespace AspNetApiMonolithSample.Controllers
             var result = await _userManager.CreateAsync(user, action.Password);
             if (result.Succeeded)
             {
-                // For more information on how to enable account confirmation and password reset please visit http://go.microsoft.com/fwlink/?LinkID=532713
-                // Send an email with this link
-                //var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                //var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: HttpContext.Request.Scheme);
+                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var callbackUrl = Url.Action("ConfirmEmail", "Account", new {
+                    userId = user.Id, code = code
+                });
                 //await _emailSender.SendEmailAsync(model.Email, "Confirm your account",
                 //    "Please confirm your account by clicking this link: <a href=\"" + callbackUrl + "\">link</a>");
-                _logger.LogInformation(3, "User created a new account with password.");
+                _logger.LogInformation(3, $"User created, confirmation code {code}");
                 return true;
             }
             else
