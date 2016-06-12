@@ -158,18 +158,5 @@ namespace AspNetApiMonolithSample.Controllers
             var result = await _userManager.ConfirmEmailAsync(user, action.Code);
             return result.Succeeded;
         }
-
-        /// <summary>
-        /// Logs out from all OpenId applications, if you want to log out only from a specific application this should not be called
-        /// </summary>
-        /// <param name="signInManager"></param>
-        /// <returns></returns>
-        [HttpPost("[action]"), AllowAnonymous]
-        public async Task<bool> Logout(
-            [FromServices] SignInManager<User> signInManager)
-        {
-            await signInManager.SignOutAsync();
-            return true;
-        }
     }
 }

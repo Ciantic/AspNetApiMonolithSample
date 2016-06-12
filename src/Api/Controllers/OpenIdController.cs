@@ -18,6 +18,8 @@ using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using System.Net;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Http;
+using System;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -37,40 +39,52 @@ namespace AspNetApiMonolithSample.Controllers
 
         /// <summary>
         /// Logs out from all applications by removing the cookies, this method is not used by OpenId specification
+        /// 
+        /// 
         /// </summary>
         /// <param name="signInManager"></param>
         /// <param name="options"></param>
+        /// <param name="clientId">Client ID to log out, leave this empty if you want to log out from all applications</param>
         /// <param name="returnUrl"></param>
         /// <returns></returns>
         [HttpGet("[action]")]
         public async Task<IActionResult> Logout(
             [FromServices] SignInManager<User> signInManager,
             [FromServices] IOptions<OpenIddictOptions> options,
+            [FromQuery] string clientId = "",
             [FromQuery] string returnUrl = "")
         {
-            await signInManager.SignOutAsync();
+            var result = true;
+
+            if (clientId == "")
+            {
+                HttpContext.Response.Cookies.Delete("LoggedInClients");
+                await signInManager.SignOutAsync();
+            } else { 
+                result = await RemoveAndLogoutClient(HttpContext, clientId, signInManager);
+            }
             if (returnUrl.Length > 0) {
                 return Redirect(returnUrl);
             }
-            return SignOut(options.Value.AuthenticationScheme);
+            return new ObjectResult(result);
         }
 
         public enum LoginErrors
         {
             Ok,
-            // Authorize errors
-            ResponseError,
-            RequestNull,
-            InvalidClient,
+            // Fatal errors are such that one should hide the login dialog
+            FatalResponseError,
+            FatalUserNotFound,
+            FatalRequestNull,
+            FatalInvalidClient,
+            FatalRedirectMissing,
 
-            // Login errors
-            RedirectMissing,
+            // Login errors are recoverable, new login attempt may work
             LockedOut,
             NotAllowed,
             UsernameOrPassword,
+            EmailIsNotConfirmed,
 
-            // Accept errors
-            UserNotFound,
         }
 
         [HttpGet("[action]")]
@@ -122,11 +136,6 @@ namespace AspNetApiMonolithSample.Controllers
             public bool RememberMe { get; set; }
         }
 
-        public class EmailIsNotConfirmed : ApiErrorResult
-        {
-
-        }
-
         [HttpPost("Login")] // TODO: Anti forgery token
         public async Task<IActionResult> LoginPost(
             [FromForm] LoginViewModel model,
@@ -134,27 +143,30 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] SignInManager<User> signInManager, 
             [FromQuery] string ReturnUrl = "")
         {
+            if (ReturnUrl.Length == 0)
+            {
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRedirectMissing });
+            }
+
             var user = await userManager.FindByEmailAsync(model.Email);
             if (user != null)
             {
                 if (!await userManager.IsEmailConfirmedAsync(user))
                 {
-                    return new EmailIsNotConfirmed();
+                    return RedirectToAction(nameof(Login), new { error = LoginErrors.EmailIsNotConfirmed, ReturnUrl = ReturnUrl });
                 }
             }
 
             var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
-            {
-                if (ReturnUrl.Length > 0) {
-                    return Redirect(ReturnUrl);
-                }
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.RedirectMissing });
+            { 
+                return Redirect(ReturnUrl);
             }
             else if (result.RequiresTwoFactor)
             {
                 //return RedirectToAction(nameof(SendCode), 
                 //    new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
+                // TODO: TWO FACTOR INPUT
                 return new OkObjectResult("TODO: TWO FACTOR");
             }
             else if (result.IsLockedOut)
@@ -192,7 +204,7 @@ namespace AspNetApiMonolithSample.Controllers
                 // return Redirect(response.RedirectUri);
 
                 // TODO: What then? Login dialog without ability go forward?
-                return RedirectToAction("Login", new { error = LoginErrors.ResponseError });
+                return RedirectToAction("Login", new { error = LoginErrors.FatalResponseError });
 
                 //return Forbid();
                 //return SignOut(options.Value.AuthenticationScheme);
@@ -203,7 +215,7 @@ namespace AspNetApiMonolithSample.Controllers
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.RequestNull });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRequestNull });
             }
 
             if (!User.Identities.Any(identity => identity.IsAuthenticated))
@@ -220,7 +232,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.InvalidClient });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
             }
 
             // Check if the application is official (registered in settings) and accept any request by 
@@ -280,20 +292,20 @@ namespace AspNetApiMonolithSample.Controllers
             if (response != null)
             {
                 // TODO: Is response required to be passed here?
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.ResponseError });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalResponseError });
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.RequestNull });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRequestNull });
             }
 
             // Retrieve the user data using the unique identifier.
             var user = await users.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.UserNotFound });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalUserNotFound });
             }
 
             // Create a new ClaimsIdentity containing the claims that
@@ -304,7 +316,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByIdAsync(request.ClientId);
             if (application == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.InvalidClient });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
             }
 
             // Create a new authentication ticket holding the user identity.
@@ -316,6 +328,8 @@ namespace AspNetApiMonolithSample.Controllers
             ticket.SetResources(request.GetResources());
             ticket.SetScopes(request.GetScopes());
 
+            AddLoggedInClient(HttpContext, request.ClientId);
+
             // Returning a SignInResult will ask ASOS to serialize the specified identity to build appropriate tokens.
             // Note: you should always make sure the identities you return contain ClaimTypes.NameIdentifier claim.
             // In this sample, the identity always contains the name identifier returned by the external provider.
@@ -323,14 +337,17 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")]
-        public IActionResult Deny([FromServices] IOptions<OpenIddictOptions> options)
+        public async Task<IActionResult> Deny(
+            [FromServices] IOptions<OpenIddictOptions> options,
+            [FromServices] SignInManager<User> signInManager
+        )
         {
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
                 return RedirectToAction(nameof(Login), new
                 {
-                    error = LoginErrors.ResponseError
+                    error = LoginErrors.FatalResponseError
                 });
             }
 
@@ -339,14 +356,71 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 return RedirectToAction(nameof(Login), new
                 {
-                    error = LoginErrors.RequestNull
+                    error = LoginErrors.FatalRequestNull
                 });
             }
+
+            await RemoveAndLogoutClient(HttpContext, request.ClientId, signInManager);
 
             // Notify ASOS that the authorization grant has been denied by the resource owner.
             // Note: OpenIdConnectServerHandler will automatically take care of redirecting
             // the user agent to the client application using the appropriate response_mode.
             return Forbid(options.Value.AuthenticationScheme);
+        }
+
+        /// <summary>
+        /// Add logged in client to cookies
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <param name="clientId"></param>
+        private void AddLoggedInClient(HttpContext httpContext, string clientId)
+        {
+            IEnumerable<string> LoggedInClients = HttpContext.Request.Cookies["LoggedInClients"]?.Split(',') ?? new string[] { };
+            if (!LoggedInClients.Contains(clientId))
+            {
+                LoggedInClients = LoggedInClients.Append(clientId);
+                HttpContext.Response.Cookies.Append("LoggedInClients", string.Join(",", LoggedInClients), new CookieOptions
+                {
+                    HttpOnly = true,
+                    Path = "/OpenId/"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Remove logged in client from a cookie, if it's the last one also logout the user from API
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <param name="clientId"></param>
+        /// <param name="signInManager"></param>
+        /// <returns></returns>
+        private async Task<bool> RemoveAndLogoutClient(HttpContext httpContext, string clientId, SignInManager<User> signInManager)
+        {
+            IEnumerable<string> LoggedInClients = HttpContext.Request.Cookies["LoggedInClients"]?.Split(',') ?? new string[] { };
+            if (LoggedInClients.Contains(clientId))
+            {
+                LoggedInClients = LoggedInClients.Except(new[] { clientId });
+                HttpContext.Response.Cookies.Append("LoggedInClients", string.Join(",", LoggedInClients), new CookieOptions
+                {
+                    HttpOnly = true,
+                    Path = "/OpenId/"
+                });
+            } else
+            {
+                return false;
+            }
+
+            if (LoggedInClients.Count() == 0)
+            {
+                HttpContext.Response.Cookies.Delete("LoggedInClients", new CookieOptions
+                {
+                    HttpOnly = true,
+                    Path = "/OpenId/"
+                });
+                await signInManager.SignOutAsync();
+            }
+
+            return true;
         }
 
         [HttpGet("[action]")]
