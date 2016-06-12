@@ -30,6 +30,7 @@ namespace AspNetApiMonolithSample.EntityFramework
             {
                 Email = "test@example.com",
                 UserName = "test@example.com",
+                EmailConfirmed = true,
             }, "!Test1");
             
             db.Add(new Thingie

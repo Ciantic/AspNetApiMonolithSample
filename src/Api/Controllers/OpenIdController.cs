@@ -21,6 +21,9 @@ using Newtonsoft.Json;
 
 namespace AspNetApiMonolithSample.Controllers
 {
+    /// <summary>
+    /// OpenId specific actions, not to be used in API calls
+    /// </summary>
     [Route("[controller]")]
     public class OpenIdController : ControllerBase
     {
@@ -32,6 +35,13 @@ namespace AspNetApiMonolithSample.Controllers
             _logger = loggerFactory.CreateLogger<OpenIdController>();
         }
 
+        /// <summary>
+        /// Logs out from all applications by removing the cookies, this method is not used by OpenId specification
+        /// </summary>
+        /// <param name="signInManager"></param>
+        /// <param name="options"></param>
+        /// <param name="returnUrl"></param>
+        /// <returns></returns>
         [HttpGet("[action]")]
         public async Task<IActionResult> Logout(
             [FromServices] SignInManager<User> signInManager,
@@ -112,9 +122,14 @@ namespace AspNetApiMonolithSample.Controllers
             public bool RememberMe { get; set; }
         }
 
+        public class EmailIsNotConfirmed : ApiErrorResult
+        {
+
+        }
+
         [HttpPost("Login")] // TODO: Anti forgery token
         public async Task<IActionResult> LoginPost(
-            [FromBody] LoginViewModel model,
+            [FromForm] LoginViewModel model,
             [FromServices] UserManager<User> userManager,
             [FromServices] SignInManager<User> signInManager, 
             [FromQuery] string ReturnUrl = "")
@@ -124,10 +139,10 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 if (!await userManager.IsEmailConfirmedAsync(user))
                 {
-                    ModelState.AddModelError(nameof(model.Email), "Email is not confirmed");
-                    throw new ValidationErrorResult(ModelState).Exception();
+                    return new EmailIsNotConfirmed();
                 }
             }
+
             var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
             {
@@ -334,8 +349,8 @@ namespace AspNetApiMonolithSample.Controllers
             return Forbid(options.Value.AuthenticationScheme);
         }
 
-        [Authorize(Policy = "COOKIES")]
         [HttpGet("[action]")]
+        [Authorize(Policy = "COOKIES")]
         public dynamic LoggedIn([RequestUser] User loggedInUser)
         {
             return new

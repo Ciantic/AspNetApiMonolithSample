@@ -8,11 +8,14 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 namespace AspNetApiMonolithSample.Mvc
 {
     abstract public class ApiErrorResult: ObjectResult {
-        
-        protected ApiErrorResult(string name, object Data = null) : base(new {
-            Error = name,
-            Data = Data
-        }) {
+
+        protected ApiErrorResult(object Data = null) : base(null)
+        {
+            this.Value = new
+            {
+                Error = GetType().Name.Replace("Result", ""),
+                Data = Data
+            };
             StatusCode = StatusCodes.Status400BadRequest;
         }
         
@@ -24,7 +27,7 @@ namespace AspNetApiMonolithSample.Mvc
     
     public class ValidationErrorResult: ApiErrorResult {
         public ValidationErrorResult(ModelStateDictionary modelState): 
-            base("VALIDATION_ERROR", new {
+            base(new {
                 Fields = modelState.ToDictionary(
                     kvp => kvp.Key,
                     kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
@@ -35,7 +38,7 @@ namespace AspNetApiMonolithSample.Mvc
         }
         
         public ValidationErrorResult(IEnumerable<String> messages): 
-            base("VALIDATION_ERROR", new {
+            base(new {
                 Messages = messages
             })
         {
@@ -44,13 +47,13 @@ namespace AspNetApiMonolithSample.Mvc
     }
     
     public class NotFoundResult: ApiErrorResult {
-        public NotFoundResult() : base("NOT_FOUND") {
+        public NotFoundResult() : base() {
             StatusCode = StatusCodes.Status404NotFound;
         }
     }
     
     public class NotAuthorizedResult: ApiErrorResult {
-        public NotAuthorizedResult() : base("NOT_AUTHORIZED") {
+        public NotAuthorizedResult() : base() {
             StatusCode = StatusCodes.Status401Unauthorized;
         }
     }
