@@ -158,5 +158,13 @@ namespace AspNetApiMonolithSample.Controllers
             var result = await _userManager.ConfirmEmailAsync(user, action.Code);
             return result.Succeeded;
         }
+
+        [HttpPost("[action]")]
+        public async Task<bool> LogoutAllApplications(
+            [FromServices] SignInManager<User> signInManager)
+        {
+            await signInManager.SignOutAsync();
+            return true;
+        }
     }
 }

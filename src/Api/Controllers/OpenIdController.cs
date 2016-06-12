@@ -50,23 +50,20 @@ namespace AspNetApiMonolithSample.Controllers
         [HttpGet("[action]")]
         public async Task<IActionResult> Logout(
             [FromServices] SignInManager<User> signInManager,
+            [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
             [FromServices] IOptions<OpenIddictOptions> options,
-            [FromQuery] string clientId = "",
-            [FromQuery] string returnUrl = "")
+            [FromQuery] string post_logout_redirect_uri = "",
+            [FromQuery] string id_token_hint = "",
+            [FromQuery] string state = "")
         {
-            var result = true;
-
-            if (clientId == "")
+            var client = await applications.FindByLogoutRedirectUri(post_logout_redirect_uri);
+            if (client == null)
             {
-                HttpContext.Response.Cookies.Delete("LoggedInClients");
-                await signInManager.SignOutAsync();
-            } else { 
-                result = await RemoveAndLogoutClient(HttpContext, clientId, signInManager);
+                return new BadRequestResult();
             }
-            if (returnUrl.Length > 0) {
-                return Redirect(returnUrl);
-            }
-            return new ObjectResult(result);
+
+            await RemoveAndLogoutClient(HttpContext, client.Id, signInManager);
+            return Redirect(post_logout_redirect_uri);    
         }
 
         public enum LoginErrors
