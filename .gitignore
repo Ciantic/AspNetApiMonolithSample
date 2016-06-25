@@ -11,6 +11,7 @@ _ReSharper.*
 *.psess
 packages
 target
+client/
 artifacts
 StyleCop.Cache
 node_modules
