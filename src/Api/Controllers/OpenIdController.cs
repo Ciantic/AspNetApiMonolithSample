@@ -226,7 +226,7 @@ namespace AspNetApiMonolithSample.Controllers
                 });
             }
 
-            var application = await applications.FindByIdAsync(request.ClientId);
+            var application = await applications.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
@@ -310,7 +310,7 @@ namespace AspNetApiMonolithSample.Controllers
             var identity = await users.CreateIdentityAsync(user, request.GetScopes());
             Debug.Assert(identity != null);
 
-            var application = await applications.FindByIdAsync(request.ClientId);
+            var application = await applications.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
