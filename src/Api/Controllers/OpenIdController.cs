@@ -19,7 +19,9 @@ using System.Collections.Generic;
 using System.Net;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using System;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -105,7 +107,7 @@ namespace AspNetApiMonolithSample.Controllers
                 Content = $@"<!DOCTYPE html>
                     <html>
                     <head>
-                    <script>var LOGIN_DATA = {data};</script>
+                    <script>var OPENID_LOGIN_PAGE = {data};</script>
                     {brandingHtml?.Value?.Login}
                     </head>
                     <body>
@@ -188,25 +190,17 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
             [FromServices] IOptions<OpenIddictOptions> options,
             [FromServices] IOptions<List<OpenIddictApplication>> officialApplications,
-            [FromServices] IOptions<BrandingHtml> brandingHtml
+            [FromServices] IOptions<BrandingHtml> brandingHtml,
+            [FromQuery(Name = "client_id")] string DirtyClientId = ""
             )
         {
-            // var services = HttpContext.RequestServices.GetRequiredService<OpenIddictServices<User, OpenIddictApplication, OpenIddictAuthorization, OpenIddictScope, OpenIddictToken>>();
-
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
-                //response.ErrorUri
+                // User might have incorrect cookie, log out and try again
+                // TODO: Can there be login loop here?
                 await signInManager.SignOutAsync();
-                // return Redirect(response.RedirectUri);
-
-                // TODO: What then? Login dialog without ability go forward?
-                return RedirectToAction("Login", new { error = LoginErrors.FatalResponseError });
-
-                //return Forbid();
-                //return SignOut(options.Value.AuthenticationScheme);
-                // TODO: Is response required to be passed here?
-                // return RedirectToAction("Login", new { error = LoginErrors.ResponseError });
+                return Redirect(Request.GetEncodedUrl());
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
@@ -221,6 +215,7 @@ namespace AspNetApiMonolithSample.Controllers
                 {
                     RedirectUri = Url.Action(nameof(Authorize), new
                     {
+                        client_id = request.ClientId,
                         request_id = request.GetRequestId(),
                     })
                 });
@@ -229,11 +224,12 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
+                _logger.LogError($"User tried to login with incorrect client id: ${request.ClientId}");
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
             }
 
             // Check if the application is official (registered in settings) and accept any request by 
-            if (officialApplications.Value.Where(x => x.Id == request.ClientId).Count() != 0)
+            if (officialApplications.Value.Where(x => x.ClientId == request.ClientId).Count() != 0)
             {
                 return await Accept(users, applications, options);
             }
@@ -252,12 +248,7 @@ namespace AspNetApiMonolithSample.Controllers
                 FormActionAccept = Url.Action(nameof(Accept)),
                 FormActionDeny = Url.Action(nameof(Deny)),
                 ApplicationName = appName,
-                FormData = new
-                {
-                    Email = "",
-                    Password = "",
-                    RememberMe = "",
-                }
+                FormData = request.Parameters
             });
 
             return new ContentResult()
@@ -265,7 +256,7 @@ namespace AspNetApiMonolithSample.Controllers
                 Content = $@"<!DOCTYPE html>
                     <html>
                     <head>
-                    <script>var AUTHORIZE_DATA = {data};</script>
+                    <script>var OPENID_AUTHORIZE_PAGE = {data};</script>
                     {brandingHtml?.Value?.Authorize}
                     </head>
                     <body>
@@ -372,10 +363,10 @@ namespace AspNetApiMonolithSample.Controllers
         /// <param name="clientId"></param>
         private void AddLoggedInClient(HttpContext httpContext, string clientId)
         {
-            IEnumerable<string> LoggedInClients = HttpContext.Request.Cookies["LoggedInClients"]?.Split(',') ?? new string[] { };
+            List<string> LoggedInClients = (HttpContext.Request.Cookies["LoggedInClients"]?.Split(',') ?? new string[] { }).ToList();
             if (!LoggedInClients.Contains(clientId))
             {
-                LoggedInClients = LoggedInClients.Append(clientId);
+                LoggedInClients.Add(clientId);
                 HttpContext.Response.Cookies.Append("LoggedInClients", string.Join(",", LoggedInClients), new CookieOptions
                 {
                     HttpOnly = true,

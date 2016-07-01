@@ -24,6 +24,9 @@ using Microsoft.AspNetCore.Authorization.Infrastructure;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Threading.Tasks;
+using Swashbuckle.Swagger.Model;
 
 namespace AspNetApiMonolithSample
 {
@@ -51,6 +54,14 @@ namespace AspNetApiMonolithSample
             Configuration = builder.Build();
         }
 
+        private static Task redirectOnlyOpenId(CookieRedirectContext ctx) {
+            if (ctx.Request.Path.StartsWithSegments("/OpenId"))
+            {
+                ctx.Response.Redirect(ctx.RedirectUri);
+            }
+            return Task.FromResult(0);
+        }
+
         public void ConfigureServices(IServiceCollection services)
         {
             // Ordering matters, Identity first, then MvcCore and then Authorization
@@ -71,6 +82,12 @@ namespace AspNetApiMonolithSample
             });
 
             services.AddIdentity<User, Role>(opts => {
+                opts.Cookies.ApplicationCookie.Events = new CookieAuthenticationEvents()
+                {
+                    OnRedirectToLogin = redirectOnlyOpenId,
+                    OnRedirectToAccessDenied = redirectOnlyOpenId
+                };
+                opts.Cookies.ApplicationCookie.AccessDeniedPath = "/OpenId/Login";
                 opts.Cookies.ApplicationCookie.LoginPath = "/OpenId/Login";
                 opts.Cookies.ApplicationCookie.LogoutPath = "/OpenId/Logout";
                 opts.Cookies.ApplicationCookie.CookiePath = "/OpenId/";
@@ -187,7 +204,7 @@ namespace AspNetApiMonolithSample
             // TODO: REGISTER OFFICIAL APPS HERE
 
             app.UseMvc();
-            app.UseSwaggerGen("docs/{apiVersion}/definition.json");
+            app.UseSwagger("docs/{apiVersion}/definition.json");
             app.UseSwaggerUi("docs", "/docs/v1/definition.json");
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }

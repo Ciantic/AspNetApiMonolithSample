@@ -19,8 +19,13 @@ namespace AspNetApiMonolithSample.Mvc
 
         public async Task BindModelAsync(ModelBindingContext bindingContext)
         {
-            var user = await _userManager.GetUserAsync(bindingContext.OperationBindingContext.ActionContext.HttpContext.User);
-            bindingContext.Result = ModelBindingResult.Success(bindingContext.ModelName, user);
+            var user = await _userManager.GetUserAsync(bindingContext.ActionContext.HttpContext.User);
+            if (user == null)
+            {
+                throw new NotAuhenticated().Exception();
+            } else { 
+                bindingContext.Result = ModelBindingResult.Success(user);
+            }
         }
     }
 

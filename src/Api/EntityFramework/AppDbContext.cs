@@ -7,7 +7,7 @@ using System;
 
 namespace AspNetApiMonolithSample.EntityFramework
 {
-    public class AppDbContext : OpenIddictContext<User, Role>
+    public class AppDbContext : OpenIddictDbContext<User, Role>
     {
         public DbSet<Thingie> Thingies { get; set; }
 
