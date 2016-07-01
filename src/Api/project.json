@@ -1,15 +1,4 @@
 {
-  "buildOptions": {
-    "emitEntryPoint": true,
-    "debugType": "portable",
-    "preserveCompilationContext": true,
-    "copyToOutput": [
-      "appsettings.json"
-    ]
-  },
-  "publishOptions": {
-    "include": [ "wwwroot" ]
-  },
   "dependencies": {
     "Microsoft.Extensions.Logging.Console": "1.0.0",
     "Microsoft.Extensions.Configuration.EnvironmentVariables": "1.0.0",
@@ -35,6 +24,9 @@
     "Swashbuckle.SwaggerGen": "6.0.0-beta*",
     "Swashbuckle.SwaggerUi": "6.0.0-beta*"
   },
+  "tools": {
+    "Microsoft.AspNetCore.Server.IISIntegration.Tools": "1.0.0-preview2-final"
+  },
   "frameworks": {
     "netcoreapp1.0": {
       "dependencies": {
@@ -50,6 +42,27 @@
         "portable-net45+win8"
       ]
     }
+  },
+  "buildOptions": {
+    "emitEntryPoint": true,
+    "preserveCompilationContext": true
+  },
+
+  "runtimeOptions": {
+    "configProperties": {
+      "System.GC.Server": true
+    }
+  },
+  "publishOptions": {
+    "include": [
+      "wwwroot",
+      "appsettings.json",
+      "web.config"
+    ]
+  },
+
+  "scripts": {
+    "postpublish": [ "dotnet publish-iis --publish-folder %publish:OutputPath% --framework %publish:FullTargetFramework%" ]
   },
   "version": "1.0.0"
 }
