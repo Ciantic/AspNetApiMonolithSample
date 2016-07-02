@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceRoot}/bin/Debug/netcoreapp1.0/win81-x64/AspNetApiMonolithSample.dll",
+            "program": "${workspaceRoot}/src/Api/bin/Debug/netcoreapp1.0/Api.dll",
             "args": [],
             "cwd": "${workspaceRoot}",
             "stopAtEntry": false

@@ -93,10 +93,9 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 Error = error.ToString(),
                 FormMethod = "POST",
-                FormAction = Url.Action(nameof(LoginPost)),
+                FormAction = Url.Action(nameof(LoginPost), new { ReturnUrl = ReturnUrl }),
                 FormData = new
                 {
-                    ReturnUrl = ReturnUrl,
                     Email = "",
                     Password = "",
                     RememberMe = "",
@@ -117,7 +116,7 @@ namespace AspNetApiMonolithSample.Controllers
                     <input type=""checkbox"" name=""RememberMe"" value=""1"" title=""REMEMBER_ME"" />
                     <button type=""submit"">LOGIN</button>
                     ",
-                ContentType = "text/html"
+                ContentType = "text/html; charset=utf8"
             };
         }
 
@@ -176,7 +175,7 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.NotAllowed, ReturnUrl = ReturnUrl });
             }
-
+            Console.WriteLine("Username or PASSWORD: redirect to ", LoginErrors.UsernameOrPassword);
             return RedirectToAction(nameof(Login), new { error = LoginErrors.UsernameOrPassword, ReturnUrl = ReturnUrl });
         }
 
@@ -191,12 +190,32 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] IOptions<OpenIddictOptions> options,
             [FromServices] IOptions<List<OpenIddictApplication>> officialApplications,
             [FromServices] IOptions<BrandingHtml> brandingHtml,
-            [FromQuery(Name = "client_id")] string DirtyClientId = ""
+            [FromQuery(Name = "client_id")] string DirtyClientId = "",
+            [FromQuery(Name = "prompt")] string DirtyPrompt = ""
             )
         {
+
+            var user = await users.GetUserAsync(HttpContext.User);
+            if (user == null)
+            {
+                if (DirtyPrompt == "none")
+                {
+                    var app = await applications.FindByClientIdAsync(DirtyClientId);
+                    if (app == null)
+                    {
+                        _logger.LogError($"User tried to login with incorrect client id: ${DirtyClientId}");
+                        return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
+                    }
+                    return Redirect(QueryHelpers.AddQueryString(app.RedirectUri, "error", "login_required"));
+                }
+                return RedirectToAction(nameof(Login), new { ReturnUrl = Request.GetEncodedUrl() });
+            }
+
+
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
+                Console.WriteLine("response", response.Error);
                 // User might have incorrect cookie, log out and try again
                 // TODO: Can there be login loop here?
                 await signInManager.SignOutAsync();
@@ -209,18 +228,6 @@ namespace AspNetApiMonolithSample.Controllers
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRequestNull });
             }
 
-            if (!User.Identities.Any(identity => identity.IsAuthenticated))
-            {
-                return Challenge(new AuthenticationProperties
-                {
-                    RedirectUri = Url.Action(nameof(Authorize), new
-                    {
-                        client_id = request.ClientId,
-                        request_id = request.GetRequestId(),
-                    })
-                });
-            }
-
             var application = await applications.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
@@ -228,7 +235,8 @@ namespace AspNetApiMonolithSample.Controllers
                 return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
             }
 
-            // Check if the application is official (registered in settings) and accept any request by 
+            // Check if the application is official (registered in settings) and
+            // accept any request by default
             if (officialApplications.Value.Where(x => x.ClientId == request.ClientId).Count() != 0)
             {
                 return await Accept(users, applications, options);
@@ -242,6 +250,7 @@ namespace AspNetApiMonolithSample.Controllers
                 var value = WebUtility.HtmlEncode(item.Value);
                 inputs = inputs + $@"<input type=""hidden"" name=""{key}"" value=""{value}"" />";
             }
+
             var data = JsonConvert.SerializeObject(new
             {
                 FormMethod = "POST",
@@ -266,7 +275,7 @@ namespace AspNetApiMonolithSample.Controllers
                     <button formaction=""{Url.Action(nameof(Accept))}"" type=""submit"" />ACCEPT</button>
                     <button formaction=""{Url.Action(nameof(Deny))}"" type=""submit"">DENY</button>
                 ",
-                ContentType = "text/html"
+                ContentType = "text/html; charset=utf8"
             };
         }
 

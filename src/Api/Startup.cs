@@ -199,15 +199,12 @@ namespace AspNetApiMonolithSample
                 Authority = Configuration.GetOrFail("Jwt:Authority"),
             });
 
-            // List<OpenIddictApplication> openIddictApps = app.ApplicationServices.GetRequiredService<IOptions<List<OpenIddictApplication>>>().Value;
-
-            // TODO: REGISTER OFFICIAL APPS HERE
-
             app.UseMvc();
             app.UseSwagger("docs/{apiVersion}/definition.json");
             app.UseSwaggerUi("docs", "/docs/v1/definition.json");
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
+
         public static void Main(string[] args)
         {
             var host = new WebHostBuilder()

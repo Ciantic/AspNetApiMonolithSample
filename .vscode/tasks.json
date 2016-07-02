@@ -6,7 +6,7 @@
     "tasks": [
         {
             "taskName": "build",
-            "args": [],
+            "args": ["src/Api"],
             "isBuildCommand": true,
             "problemMatcher": "$msCompile"
         }
