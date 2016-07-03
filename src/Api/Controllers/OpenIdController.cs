@@ -208,13 +208,7 @@ namespace AspNetApiMonolithSample.Controllers
                 return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient, Display = Display });
             }
 
-            var isAuthenticated = false;
-            if (User.Identities.Any(identity => identity.IsAuthenticated))
-            {
-                isAuthenticated = true;
-            }
-
-            if (!isAuthenticated)
+            if (!User.Identities.Any(identity => identity.IsAuthenticated))
             {
                 if (Prompt == "none")
                 {
