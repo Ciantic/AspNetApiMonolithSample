@@ -27,6 +27,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Threading.Tasks;
 using Swashbuckle.Swagger.Model;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace AspNetApiMonolithSample
 {
@@ -57,6 +58,7 @@ namespace AspNetApiMonolithSample
         private static Task redirectOnlyOpenId(CookieRedirectContext ctx) {
             if (ctx.Request.Path.StartsWithSegments("/OpenId"))
             {
+                
                 ctx.Response.Redirect(ctx.RedirectUri);
             }
             return Task.FromResult(0);
@@ -80,6 +82,24 @@ namespace AspNetApiMonolithSample
                     options.UseSqlServer(Configuration.GetOrFail("Data:DefaultConnection:ConnectionString"));
                 }
             });
+
+            services.AddMvcCore(opts =>
+            {
+                opts.Filters.Add(new ModelStateValidationFilter());
+                opts.Filters.Add(new NullValidationFilter());
+                opts.Filters.Add(new ApiExceptionFilter());
+            })
+                .AddApiExplorer()
+                .AddAuthorization(opts => {
+                    opts.AddPolicy("COOKIES", opts.DefaultPolicy);
+                    opts.DefaultPolicy = new AuthorizationPolicyBuilder()
+                        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api_user")
+                        .Build();
+                })
+                .AddDataAnnotations()
+                .AddFormatterMappings()
+                .AddJsonFormatters();
 
             services.AddIdentity<User, Role>(opts => {
                 opts.Cookies.ApplicationCookie.Events = new CookieAuthenticationEvents()
@@ -109,24 +129,6 @@ namespace AspNetApiMonolithSample
             {
                 openIdDict.DisableHttpsRequirement();
             }
-
-            services.AddMvcCore(opts =>
-            {
-                opts.Filters.Add(new ModelStateValidationFilter());
-                opts.Filters.Add(new NullValidationFilter());
-                opts.Filters.Add(new ApiExceptionFilter());
-            })
-                .AddApiExplorer()
-                .AddAuthorization(opts => {
-                    opts.AddPolicy("COOKIES", opts.DefaultPolicy);
-                    opts.DefaultPolicy = new AuthorizationPolicyBuilder()
-                        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api_user")
-                        .Build();
-                })
-                .AddDataAnnotations()
-                .AddFormatterMappings()
-                .AddJsonFormatters();
 
             services.AddSwaggerGen(opts =>
             {

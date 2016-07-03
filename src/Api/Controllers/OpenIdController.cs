@@ -87,13 +87,17 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpGet("[action]")]
-        public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml, [FromQuery] LoginErrors error = LoginErrors.Ok, [FromQuery] string ReturnUrl = "")
+        public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml, 
+            [FromQuery] LoginErrors Error = LoginErrors.Ok, 
+            [FromQuery] string ReturnUrl = "",
+            [FromQuery(Name = "display")] string Display = "")
         {
             var data = JsonConvert.SerializeObject(new
             {
-                Error = error.ToString(),
+                Display = Display,
+                Error = Error.ToString(),
                 FormMethod = "POST",
-                FormAction = Url.Action(nameof(LoginPost), new { ReturnUrl = ReturnUrl }),
+                FormAction = Url.Action(nameof(LoginPost), new { ReturnUrl = ReturnUrl, Display = Display }),
                 FormData = new
                 {
                     Email = "",
@@ -110,7 +114,7 @@ namespace AspNetApiMonolithSample.Controllers
                     {brandingHtml?.Value?.Login}
                     </head>
                     <body>
-                    <form action=""{Url.Action(nameof(LoginPost), new { ReturnUrl = ReturnUrl })}"" method=""POST"">
+                    <form action=""{Url.Action(nameof(LoginPost), new { ReturnUrl = ReturnUrl, Display = Display })}"" method=""POST"">
                     <input type=""email"" name=""Email"" placeholder=""EMAIL"" required />
                     <input type=""password"" name=""Password"" placeholder=""PASSWORD"" required />
                     <input type=""checkbox"" name=""RememberMe"" value=""1"" title=""REMEMBER_ME"" />
@@ -139,11 +143,12 @@ namespace AspNetApiMonolithSample.Controllers
             [FromForm] LoginViewModel model,
             [FromServices] UserManager<User> userManager,
             [FromServices] SignInManager<User> signInManager, 
-            [FromQuery] string ReturnUrl = "")
+            [FromQuery] string ReturnUrl = "",
+            [FromQuery(Name = "display")] string Display = "")
         {
             if (ReturnUrl.Length == 0)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRedirectMissing });
+                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRedirectMissing, Display = Display });
             }
 
             var user = await userManager.FindByEmailAsync(model.Email);
@@ -151,7 +156,7 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 if (!await userManager.IsEmailConfirmedAsync(user))
                 {
-                    return RedirectToAction(nameof(Login), new { error = LoginErrors.EmailIsNotConfirmed, ReturnUrl = ReturnUrl });
+                    return RedirectToAction(nameof(Login), new { error = LoginErrors.EmailIsNotConfirmed, ReturnUrl = ReturnUrl, Display = Display });
                 }
             }
 
@@ -169,14 +174,13 @@ namespace AspNetApiMonolithSample.Controllers
             }
             else if (result.IsLockedOut)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.LockedOut, ReturnUrl = ReturnUrl });
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.LockedOut, ReturnUrl = ReturnUrl, Display = Display });
             }
             else if (result.IsNotAllowed)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.NotAllowed, ReturnUrl = ReturnUrl });
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.NotAllowed, ReturnUrl = ReturnUrl, Display = Display });
             }
-            Console.WriteLine("Username or PASSWORD: redirect to ", LoginErrors.UsernameOrPassword);
-            return RedirectToAction(nameof(Login), new { error = LoginErrors.UsernameOrPassword, ReturnUrl = ReturnUrl });
+            return RedirectToAction(nameof(Login), new { Error = LoginErrors.UsernameOrPassword, ReturnUrl = ReturnUrl, Display = Display });
         }
 
         // TODO REPLICATE Authorize, Accept at least, even in same
@@ -190,27 +194,26 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] IOptions<OpenIddictOptions> options,
             [FromServices] IOptions<List<OpenIddictApplication>> officialApplications,
             [FromServices] IOptions<BrandingHtml> brandingHtml,
-            [FromQuery(Name = "client_id")] string DirtyClientId = "",
-            [FromQuery(Name = "prompt")] string DirtyPrompt = ""
+            [FromQuery(Name = "display")] string Display = "",
+            [FromQuery(Name = "client_id")] string ClientId = "",
+            [FromQuery(Name = "prompt")] string Prompt = ""
             )
         {
-
             var user = await users.GetUserAsync(HttpContext.User);
             if (user == null)
             {
-                if (DirtyPrompt == "none")
+                if (Prompt == "none")
                 {
-                    var app = await applications.FindByClientIdAsync(DirtyClientId);
+                    var app = await applications.FindByClientIdAsync(ClientId);
                     if (app == null)
                     {
-                        _logger.LogError($"User tried to login with incorrect client id: ${DirtyClientId}");
-                        return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
+                        _logger.LogError($"User tried to login with incorrect client id: ${ClientId}");
+                        return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient, Display = Display });
                     }
                     return Redirect(QueryHelpers.AddQueryString(app.RedirectUri, "error", "login_required"));
                 }
-                return RedirectToAction(nameof(Login), new { ReturnUrl = Request.GetEncodedUrl() });
+                return RedirectToAction(nameof(Login), new { ReturnUrl = Request.GetEncodedUrl(), Display = Display });
             }
-
 
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
@@ -225,21 +228,21 @@ namespace AspNetApiMonolithSample.Controllers
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRequestNull });
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalRequestNull, Display = Display });
             }
 
             var application = await applications.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
                 _logger.LogError($"User tried to login with incorrect client id: ${request.ClientId}");
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient, Display = Display });
             }
 
             // Check if the application is official (registered in settings) and
             // accept any request by default
             if (officialApplications.Value.Where(x => x.ClientId == request.ClientId).Count() != 0)
             {
-                return await Accept(users, applications, options);
+                return await Accept(users, applications, options, Display);
             }
             
             var appName = await applications.GetDisplayNameAsync(application);
@@ -253,6 +256,7 @@ namespace AspNetApiMonolithSample.Controllers
 
             var data = JsonConvert.SerializeObject(new
             {
+                Display = request.Display,
                 FormMethod = "POST",
                 FormActionAccept = Url.Action(nameof(Accept)),
                 FormActionDeny = Url.Action(nameof(Deny)),
@@ -283,26 +287,27 @@ namespace AspNetApiMonolithSample.Controllers
         public virtual async Task<IActionResult> Accept(
             [FromServices] OpenIddictUserManager<User> users,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
-            [FromServices] IOptions<OpenIddictOptions> options)
+            [FromServices] IOptions<OpenIddictOptions> options,
+            [FromQuery(Name = "display")] string Display = "")
         {
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
                 // TODO: Is response required to be passed here?
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalResponseError });
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalResponseError, Display = Display });
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRequestNull });
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalRequestNull, Display = Display });
             }
 
             // Retrieve the user data using the unique identifier.
             var user = await users.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalUserNotFound });
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalUserNotFound, Display = Display });
             }
 
             // Create a new ClaimsIdentity containing the claims that
@@ -313,7 +318,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalInvalidClient });
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient });
             }
 
             // Create a new authentication ticket holding the user identity.
@@ -336,7 +341,8 @@ namespace AspNetApiMonolithSample.Controllers
         [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")]
         public async Task<IActionResult> Deny(
             [FromServices] IOptions<OpenIddictOptions> options,
-            [FromServices] SignInManager<User> signInManager
+            [FromServices] SignInManager<User> signInManager,
+            [FromQuery(Name = "display")] string Display = ""
         )
         {
             var response = HttpContext.GetOpenIdConnectResponse();
@@ -344,7 +350,8 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 return RedirectToAction(nameof(Login), new
                 {
-                    error = LoginErrors.FatalResponseError
+                    Error = LoginErrors.FatalResponseError,
+                    Display = Display
                 });
             }
 
@@ -353,7 +360,8 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 return RedirectToAction(nameof(Login), new
                 {
-                    error = LoginErrors.FatalRequestNull
+                    Error = LoginErrors.FatalRequestNull,
+                    Display = Display
                 });
             }
 
