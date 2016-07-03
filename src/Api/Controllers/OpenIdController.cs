@@ -194,23 +194,35 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] IOptions<OpenIddictOptions> options,
             [FromServices] IOptions<List<OpenIddictApplication>> officialApplications,
             [FromServices] IOptions<BrandingHtml> brandingHtml,
+            [FromQuery(Name = "state")] string State = "",
             [FromQuery(Name = "display")] string Display = "",
             [FromQuery(Name = "client_id")] string ClientId = "",
             [FromQuery(Name = "prompt")] string Prompt = ""
             )
         {
-            var user = await users.GetUserAsync(HttpContext.User);
-            if (user == null)
+
+            var application = await applications.FindByClientIdAsync(ClientId);
+            if (application == null)
+            {
+                _logger.LogError($"User tried to login with incorrect client id: ${ClientId}");
+                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient, Display = Display });
+            }
+
+            var isAuthenticated = false;
+            if (User.Identities.Any(identity => identity.IsAuthenticated))
+            {
+                isAuthenticated = true;
+            }
+
+            if (!isAuthenticated)
             {
                 if (Prompt == "none")
                 {
-                    var app = await applications.FindByClientIdAsync(ClientId);
-                    if (app == null)
+                    return Redirect(QueryHelpers.AddQueryString(application.RedirectUri, new Dictionary<string, string>()
                     {
-                        _logger.LogError($"User tried to login with incorrect client id: ${ClientId}");
-                        return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient, Display = Display });
-                    }
-                    return Redirect(QueryHelpers.AddQueryString(app.RedirectUri, "error", "login_required"));
+                        { "error", "login_required" },
+                        { "state", State }
+                    }));
                 }
                 return RedirectToAction(nameof(Login), new { ReturnUrl = Request.GetEncodedUrl(), Display = Display });
             }
@@ -218,24 +230,27 @@ namespace AspNetApiMonolithSample.Controllers
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
-                Console.WriteLine("response", response.Error);
-                // User might have incorrect cookie, log out and try again
-                // TODO: Can there be login loop here?
-                await signInManager.SignOutAsync();
-                return Redirect(Request.GetEncodedUrl());
+                _logger.LogWarning($"Invalid OpenId response: ${response.Error}: ${response.ErrorDescription}");
+                if (response.Error == "server_error")
+                {
+                    // Login cookie may have been incorrect, remove and try again
+                    await signInManager.SignOutAsync();
+                    return Redirect(Request.GetEncodedUrl());
+                } else
+                {
+                    return Redirect(QueryHelpers.AddQueryString(application.RedirectUri, new Dictionary<string, string>()
+                    {
+                        { "error", response.Error },
+                        { "error_description", response.ErrorDescription },
+                        { "state", State }
+                    }));
+                }
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
                 return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalRequestNull, Display = Display });
-            }
-
-            var application = await applications.FindByClientIdAsync(request.ClientId);
-            if (application == null)
-            {
-                _logger.LogError($"User tried to login with incorrect client id: ${request.ClientId}");
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient, Display = Display });
             }
 
             // Check if the application is official (registered in settings) and
