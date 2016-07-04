@@ -28,6 +28,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Threading.Tasks;
 using Swashbuckle.Swagger.Model;
 using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Api.Mvc;
 
 namespace AspNetApiMonolithSample
 {
@@ -58,7 +60,6 @@ namespace AspNetApiMonolithSample
         private static Task redirectOnlyOpenId(CookieRedirectContext ctx) {
             if (ctx.Request.Path.StartsWithSegments("/OpenId"))
             {
-                
                 ctx.Response.Redirect(ctx.RedirectUri);
             }
             return Task.FromResult(0);
@@ -101,6 +102,7 @@ namespace AspNetApiMonolithSample
                 .AddFormatterMappings()
                 .AddJsonFormatters();
 
+
             services.AddIdentity<User, Role>(opts => {
                 opts.Cookies.ApplicationCookie.Events = new CookieAuthenticationEvents()
                 {
@@ -114,6 +116,8 @@ namespace AspNetApiMonolithSample
             })
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+
+            services.TryAddScoped<SignInManager<User>, OpenIdSignInManager<User>>();
 
             var openIdDict = services.AddOpenIddict<User, AppDbContext>()
                 .SetTokenEndpointPath("/OpenId/token")
