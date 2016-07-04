@@ -91,8 +91,6 @@ namespace AspNetApiMonolithSample.Controllers
                 */
             }
 
-
-            await RemoveAndLogoutClient(HttpContext, client.Id, signInManager);
             return Redirect(QueryHelpers.AddQueryString(request.PostLogoutRedirectUri, new Dictionary<string, string>()
                 { 
                     { "state", state }
@@ -376,8 +374,6 @@ namespace AspNetApiMonolithSample.Controllers
             ticket.SetResources(request.GetResources());
             ticket.SetScopes(request.GetScopes());
 
-            AddLoggedInClient(HttpContext, request.ClientId);
-
             // Returning a SignInResult will ask ASOS to serialize the specified identity to build appropriate tokens.
             // Note: you should always make sure the identities you return contain ClaimTypes.NameIdentifier claim.
             // In this sample, the identity always contains the name identifier returned by the external provider.
@@ -411,71 +407,14 @@ namespace AspNetApiMonolithSample.Controllers
                 });
             }
 
-            await RemoveAndLogoutClient(HttpContext, request.ClientId, signInManager);
+            // TODO: PASS request.ClientId!
+            await signInManager.SignOutAsync();
+            // await RemoveAndLogoutClient(HttpContext, request.ClientId, signInManager);
 
             // Notify ASOS that the authorization grant has been denied by the resource owner.
             // Note: OpenIdConnectServerHandler will automatically take care of redirecting
             // the user agent to the client application using the appropriate response_mode.
             return Forbid(options.Value.AuthenticationScheme);
-        }
-
-        /// <summary>
-        /// Add logged in client to cookies
-        /// 
-        /// TODO: MOVE TO OpenIdSignInManager
-        /// </summary>
-        /// <param name="httpContext"></param>
-        /// <param name="clientId"></param>
-        private void AddLoggedInClient(HttpContext httpContext, string clientId)
-        {
-            List<string> LoggedInClients = (HttpContext.Request.Cookies["LoggedInClients"]?.Split(',') ?? new string[] { }).ToList();
-            if (!LoggedInClients.Contains(clientId))
-            {
-                LoggedInClients.Add(clientId);
-                HttpContext.Response.Cookies.Append("LoggedInClients", string.Join(",", LoggedInClients), new CookieOptions
-                {
-                    HttpOnly = true,
-                    Path = "/OpenId/"
-                });
-            }
-        }
-
-        /// <summary>
-        /// Remove logged in client from a cookie, if it's the last one also logout the user from API
-        /// 
-        /// TODO: MOVE TO OpenIdSignInManager
-        /// </summary>
-        /// <param name="httpContext"></param>
-        /// <param name="clientId"></param>
-        /// <param name="signInManager"></param>
-        /// <returns></returns>
-        private async Task<bool> RemoveAndLogoutClient(HttpContext httpContext, string clientId, SignInManager<User> signInManager)
-        {
-            IEnumerable<string> LoggedInClients = HttpContext.Request.Cookies["LoggedInClients"]?.Split(',') ?? new string[] { };
-            if (LoggedInClients.Contains(clientId))
-            {
-                LoggedInClients = LoggedInClients.Except(new[] { clientId });
-                HttpContext.Response.Cookies.Append("LoggedInClients", string.Join(",", LoggedInClients), new CookieOptions
-                {
-                    HttpOnly = true,
-                    Path = "/OpenId/"
-                });
-            } else
-            {
-                return false;
-            }
-
-            if (LoggedInClients.Count() == 0)
-            {
-                HttpContext.Response.Cookies.Delete("LoggedInClients", new CookieOptions
-                {
-                    HttpOnly = true,
-                    Path = "/OpenId/"
-                });
-                await signInManager.SignOutAsync();
-            }
-
-            return true;
         }
 
         [HttpGet("[action]")]

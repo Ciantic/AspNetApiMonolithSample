@@ -117,7 +117,7 @@ namespace AspNetApiMonolithSample
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
 
-            services.TryAddScoped<SignInManager<User>, OpenIdSignInManager<User>>();
+            services.AddScoped<SignInManager<User>, OpenIdSignInManager<User>>();
 
             var openIdDict = services.AddOpenIddict<User, AppDbContext>()
                 .SetTokenEndpointPath("/OpenId/token")
