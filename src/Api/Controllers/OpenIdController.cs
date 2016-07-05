@@ -100,7 +100,7 @@ namespace AspNetApiMonolithSample.Controllers
         {
             var data = JsonConvert.SerializeObject(new
             {
-                display = display,
+                Display = display,
                 Error = error.ToString(),
             });
             return new ContentResult()
@@ -137,7 +137,7 @@ namespace AspNetApiMonolithSample.Controllers
         {
             var data = JsonConvert.SerializeObject(new
             {
-                display = display,
+                Display = display,
                 Error = error.ToString(),
                 FormMethod = "POST",
                 FormAction = Url.Action(nameof(LoginPost), new
@@ -314,7 +314,7 @@ namespace AspNetApiMonolithSample.Controllers
             // TODO: Anti forgery token for Accept and Deny
             var data = JsonConvert.SerializeObject(new
             {
-                display = request.Display,
+                Display = request.Display,
                 FormMethod = "POST",
                 FormActionAccept = Url.Action(nameof(Accept)),
                 FormActionDeny = Url.Action(nameof(Deny)),
