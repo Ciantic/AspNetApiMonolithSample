@@ -94,7 +94,7 @@ namespace AspNetApiMonolithSample.Controllers
 
         [HttpGet("[action]")]
         public IActionResult Error(
-            [FromServices] IOptions<BrandingHtml> brandingHtml,
+            [FromServices] IOptions<OpenIdBrandingHtml> brandingHtml,
             [FromQuery] FatalErrors error,
             [FromQuery] string display = "")
         {
@@ -130,7 +130,7 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpGet("[action]")]
-        public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml,
+        public IActionResult Login([FromServices] IOptions<OpenIdBrandingHtml> brandingHtml,
             [FromQuery] LoginErrors error = LoginErrors.Ok,
             [FromQuery] string returnUrl = "",
             [FromQuery] string display = "")
@@ -240,7 +240,7 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
             [FromServices] IOptions<OpenIddictOptions> options,
             [FromServices] IOptions<List<OpenIddictApplication>> officialApplications,
-            [FromServices] IOptions<BrandingHtml> brandingHtml,
+            [FromServices] IOptions<OpenIdBrandingHtml> brandingHtml,
             [FromQuery] string state = "",
             [FromQuery] string display = "",
             [FromQuery] string client_id = "",

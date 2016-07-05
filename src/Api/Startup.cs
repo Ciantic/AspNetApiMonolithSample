@@ -32,7 +32,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AspNetApiMonolithSample
 {
-    public class BrandingHtml
+    public class OpenIdBrandingHtml
     {
         public string Login { get; set; } = "";
         public string Authorize { get; set; } = "";
@@ -81,7 +81,7 @@ namespace AspNetApiMonolithSample
                 }
                 else
                 {
-                    options.UseSqlServer(Configuration.GetOrFail("Data:DefaultConnection:ConnectionString"));
+                    options.UseSqlServer(Configuration.GetOrFail("DefaultConnectionString"));
                 }
             });
 
@@ -147,16 +147,16 @@ namespace AspNetApiMonolithSample
                     return null;
                 });
 
-                if (Configuration.GetOrFail("Api:Url").EndsWith("/")) {
-                    throw new System.Exception("Configuration `Api.Url` must not end with /");
+                if (!Configuration.GetOrFail("Api:Url").EndsWith("/")) {
+                    throw new System.Exception("Configuration `Api.Url` must end with /");
                 }
                 
                 opts.AddSecurityDefinition("oauth2", new OAuth2Scheme
                 {
                     Type = "oauth2",
                     Flow = "implicit",
-                    AuthorizationUrl = Configuration.GetOrFail("Api:Url") + "/OpenId/Authorize", 
-                    TokenUrl = Configuration.GetOrFail("Api:Url") + "/OpenId/token",
+                    AuthorizationUrl = Configuration.GetOrFail("Api:Url") + "OpenId/Authorize", 
+                    TokenUrl = Configuration.GetOrFail("Api:Url") + "OpenId/token",
                     Scopes = new Dictionary<string, string>
                     {
                         { "api_user", "API user" }
@@ -175,7 +175,7 @@ namespace AspNetApiMonolithSample
             
             services.AddTransient<IThingieStore, ThingieStore>();
             services.Configure<List<OpenIddictApplication>>(Configuration.GetSection("Applications"));
-            services.Configure<BrandingHtml>(Configuration.GetSection("BrandingHtml"));
+            services.Configure<OpenIdBrandingHtml>(Configuration.GetSection("OpenIdBrandingHtml"));
         }
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
