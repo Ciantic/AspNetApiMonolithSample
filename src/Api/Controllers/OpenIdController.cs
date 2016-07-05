@@ -67,28 +67,13 @@ namespace AspNetApiMonolithSample.Controllers
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
-                return new ContentResult()
-                {
-                    Content = "ERROR: RESPONSE"
-                };
-                // return Task.FromResult<IActionResult>(View("Error", response));
+                return new BadRequestResult();
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
                 return new BadRequestResult();
-                return new ContentResult()
-                {
-                    Content = "ERROR: REQUEST"
-                };
-                /*
-                return Task.FromResult<IActionResult>(View("Error", new OpenIdConnectMessage
-                {
-                    Error = OpenIdConnectConstants.Errors.ServerError,
-                    ErrorDescription = "An internal error has occurred"
-                }));
-                */
             }
 
             return Redirect(QueryHelpers.AddQueryString(request.PostLogoutRedirectUri, new Dictionary<string, string>()
