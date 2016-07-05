@@ -133,7 +133,6 @@ namespace AspNetApiMonolithSample.Controllers
         public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml,
             [FromQuery] LoginErrors error = LoginErrors.Ok,
             [FromQuery] string returnUrl = "",
-            [FromQuery(Name = "client_id")] string clientId = "",
             [FromQuery] string display = "")
         {
             var data = JsonConvert.SerializeObject(new
@@ -144,8 +143,7 @@ namespace AspNetApiMonolithSample.Controllers
                 FormAction = Url.Action(nameof(LoginPost), new
                 {
                     returnUrl = returnUrl,
-                    display = display,
-                    client_id = clientId
+                    display = display
                 }),
                 FormData = new
                 {
@@ -193,7 +191,7 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] UserManager<User> userManager,
             [FromServices] SignInManager<User> signInManager,
             [FromQuery] string returnUrl = "",
-            [FromQuery(Name = "display")] string display = "")
+            [FromQuery] string display = "")
         {
             if (returnUrl.Length == 0)
             {
@@ -245,15 +243,15 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] IOptions<BrandingHtml> brandingHtml,
             [FromQuery] string state = "",
             [FromQuery] string display = "",
-            [FromQuery(Name = "client_id")] string clientId = "",
+            [FromQuery] string client_id = "",
             [FromQuery] string prompt = ""
             )
         {
 
-            var application = await applications.FindByClientIdAsync(clientId);
+            var application = await applications.FindByClientIdAsync(client_id);
             if (application == null)
             {
-                _logger.LogError($"User tried to login with incorrect client id: ${clientId}");
+                _logger.LogError($"User tried to login with incorrect client id: ${client_id}");
                 return RedirectToFatal(FatalErrors.InvalidClient, display);
             }
 
@@ -313,6 +311,7 @@ namespace AspNetApiMonolithSample.Controllers
                 inputs = inputs + $@"<input type=""hidden"" name=""{key}"" value=""{value}"" />";
             }
 
+            // TODO: Anti forgery token for Accept and Deny
             var data = JsonConvert.SerializeObject(new
             {
                 display = request.Display,
@@ -396,7 +395,7 @@ namespace AspNetApiMonolithSample.Controllers
             return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
         }
 
-        [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")]
+        [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")] // TODO: Anti forgery token
         public IActionResult Deny(
             [FromServices] IOptions<OpenIddictOptions> options,
             [FromServices] SignInManager<User> signInManager,

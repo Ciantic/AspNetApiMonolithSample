@@ -37,6 +37,7 @@ namespace AspNetApiMonolithSample
         public string Login { get; set; } = "";
         public string Authorize { get; set; } = "";
         public string Error { get; set; } = "";
+        public string TwoFactor { get; set; } = "";
     }
 
     public class Startup
