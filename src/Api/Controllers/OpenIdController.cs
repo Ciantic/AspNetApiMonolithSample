@@ -47,17 +47,8 @@ namespace AspNetApiMonolithSample.Controllers
         public async Task<IActionResult> Logout(
             [FromServices] SignInManager<User> signInManager,
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
-            [FromServices] IOptions<OpenIddictOptions> options,
-            [FromQuery] string post_logout_redirect_uri = "",
-            [FromQuery] string id_token_hint = "",
-            [FromQuery] string state = "")
+            [FromServices] IOptions<OpenIddictOptions> options)
         {
-            var client = await applications.FindByLogoutRedirectUri(post_logout_redirect_uri);
-            if (client == null)
-            {
-                return new BadRequestResult();
-            }
-
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
@@ -70,10 +61,9 @@ namespace AspNetApiMonolithSample.Controllers
                 return new BadRequestResult();
             }
 
-            return Redirect(QueryHelpers.AddQueryString(request.PostLogoutRedirectUri, new Dictionary<string, string>()
-                {
-                    { "state", state }
-                }));
+            await signInManager.SignOutAsync();
+
+            return SignOut(options.Value.AuthenticationScheme);
         }
 
         // Fatal errors are such that are not recoverable, error must be shown, it's not possible to login
