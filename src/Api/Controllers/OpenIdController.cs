@@ -397,7 +397,7 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")]
-        public async Task<IActionResult> Deny(
+        public IActionResult Deny(
             [FromServices] IOptions<OpenIddictOptions> options,
             [FromServices] SignInManager<User> signInManager,
             [FromQuery(Name = "display")] string display = ""
