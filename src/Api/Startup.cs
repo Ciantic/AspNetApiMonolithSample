@@ -29,7 +29,6 @@ using System.Threading.Tasks;
 using Swashbuckle.Swagger.Model;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Api.Mvc;
 
 namespace AspNetApiMonolithSample
 {
@@ -37,6 +36,7 @@ namespace AspNetApiMonolithSample
     {
         public string Login { get; set; } = "";
         public string Authorize { get; set; } = "";
+        public string Error { get; set; } = "";
     }
 
     public class Startup
@@ -116,8 +116,6 @@ namespace AspNetApiMonolithSample
             })
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
-
-            services.AddScoped<SignInManager<User>, OpenIdSignInManager<User>>();
 
             var openIdDict = services.AddOpenIddict<User, AppDbContext>()
                 .SetTokenEndpointPath("/OpenId/token")

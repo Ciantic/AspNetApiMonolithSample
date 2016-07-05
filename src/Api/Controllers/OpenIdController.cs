@@ -77,32 +77,61 @@ namespace AspNetApiMonolithSample.Controllers
             }
 
             return Redirect(QueryHelpers.AddQueryString(request.PostLogoutRedirectUri, new Dictionary<string, string>()
-                { 
+                {
                     { "state", state }
                 }));
         }
 
+        // Fatal errors are such that are not recoverable, error must be shown, it's not possible to login
+        public enum FatalErrors
+        {
+            ResponseError,
+            UserNotFound,
+            RequestNull,
+            InvalidClient,
+            RedirectMissing,
+        }
+
+        [HttpGet("[action]")]
+        public IActionResult Error(
+            [FromServices] IOptions<BrandingHtml> brandingHtml,
+            [FromQuery] FatalErrors error,
+            [FromQuery] string display = "")
+        {
+            var data = JsonConvert.SerializeObject(new
+            {
+                display = display,
+                Error = error.ToString(),
+            });
+            return new ContentResult()
+            {
+                Content = $@"<!DOCTYPE html>
+                    <html>
+                    <head>
+                    <script>var OPENID_ERROR_PAGE = {data};</script>
+                    {brandingHtml?.Value?.Error}
+                    </head>
+                    <body>
+                    <p>ERROR: {error.ToString()}</p>
+                    ",
+                ContentType = "text/html; charset=utf8"
+            };
+        }
+
+
+        // Login errors are recoverable, new login attempt may work
         public enum LoginErrors
         {
             Ok,
-            // Fatal errors are such that one should hide the login dialog
-            FatalResponseError,
-            FatalUserNotFound,
-            FatalRequestNull,
-            FatalInvalidClient,
-            FatalRedirectMissing,
-
-            // Login errors are recoverable, new login attempt may work
             LockedOut,
             NotAllowed,
             UsernameOrPassword,
             EmailIsNotConfirmed,
-
         }
 
         [HttpGet("[action]")]
-        public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml, 
-            [FromQuery] LoginErrors error = LoginErrors.Ok, 
+        public IActionResult Login([FromServices] IOptions<BrandingHtml> brandingHtml,
+            [FromQuery] LoginErrors error = LoginErrors.Ok,
             [FromQuery] string returnUrl = "",
             [FromQuery(Name = "client_id")] string clientId = "",
             [FromQuery] string display = "")
@@ -112,7 +141,8 @@ namespace AspNetApiMonolithSample.Controllers
                 display = display,
                 Error = error.ToString(),
                 FormMethod = "POST",
-                FormAction = Url.Action(nameof(LoginPost), new {
+                FormAction = Url.Action(nameof(LoginPost), new
+                {
                     returnUrl = returnUrl,
                     display = display,
                     client_id = clientId
@@ -161,14 +191,13 @@ namespace AspNetApiMonolithSample.Controllers
         public async Task<IActionResult> LoginPost(
             [FromForm] LoginViewModel model,
             [FromServices] UserManager<User> userManager,
-            [FromServices] SignInManager<User> signInManager, 
+            [FromServices] SignInManager<User> signInManager,
             [FromQuery] string returnUrl = "",
-            [FromQuery(Name = "client_id")] string clientId = "",
             [FromQuery(Name = "display")] string display = "")
         {
             if (returnUrl.Length == 0)
             {
-                return RedirectToAction(nameof(Login), new { error = LoginErrors.FatalRedirectMissing, display = display, client_id = clientId });
+                return RedirectToFatal(FatalErrors.RedirectMissing, display);
             }
 
             var user = await userManager.FindByEmailAsync(model.Email);
@@ -176,13 +205,13 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 if (!await userManager.IsEmailConfirmedAsync(user))
                 {
-                    return RedirectToAction(nameof(Login), new { error = LoginErrors.EmailIsNotConfirmed, returnUrl = returnUrl, display = display, client_id = clientId });
+                    return RedirectToLogin(LoginErrors.EmailIsNotConfirmed, returnUrl, display);
                 }
             }
 
             var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
-            { 
+            {
                 return Redirect(returnUrl);
             }
             else if (result.RequiresTwoFactor)
@@ -194,13 +223,13 @@ namespace AspNetApiMonolithSample.Controllers
             }
             else if (result.IsLockedOut)
             {
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.LockedOut, returnUrl = returnUrl, display = display, client_id = clientId });
+                return RedirectToLogin(LoginErrors.LockedOut, returnUrl, display);
             }
             else if (result.IsNotAllowed)
             {
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.NotAllowed, returnUrl = returnUrl, display = display, client_id = clientId });
+                return RedirectToLogin(LoginErrors.NotAllowed, returnUrl, display);
             }
-            return RedirectToAction(nameof(Login), new { Error = LoginErrors.UsernameOrPassword, returnUrl = returnUrl, display = display, client_id = clientId });
+            return RedirectToLogin(LoginErrors.UsernameOrPassword, returnUrl, display);
         }
 
         // TODO REPLICATE Authorize, Accept at least, even in same
@@ -225,7 +254,7 @@ namespace AspNetApiMonolithSample.Controllers
             if (application == null)
             {
                 _logger.LogError($"User tried to login with incorrect client id: ${clientId}");
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient, display = display });
+                return RedirectToFatal(FatalErrors.InvalidClient, display);
             }
 
             if (!User.Identities.Any(identity => identity.IsAuthenticated))
@@ -238,7 +267,7 @@ namespace AspNetApiMonolithSample.Controllers
                         { "state", state }
                     }));
                 }
-                return RedirectToAction(nameof(Login), new { returnUrl = Request.GetEncodedUrl(), display = display, client_id = clientId });
+                return RedirectToLogin(LoginErrors.Ok, Request.GetEncodedUrl(), display);
             }
 
             var response = HttpContext.GetOpenIdConnectResponse();
@@ -250,7 +279,8 @@ namespace AspNetApiMonolithSample.Controllers
                     // Login cookie may have been incorrect, remove and try again
                     await signInManager.SignOutAsync();
                     return Redirect(Request.GetEncodedUrl());
-                } else
+                }
+                else
                 {
                     return Redirect(QueryHelpers.AddQueryString(application.RedirectUri, new Dictionary<string, string>()
                     {
@@ -264,7 +294,7 @@ namespace AspNetApiMonolithSample.Controllers
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalRequestNull, display = display, client_id = clientId });
+                return RedirectToFatal(FatalErrors.RequestNull, display);
             }
 
             // Check if the application is official (registered in settings) and
@@ -273,11 +303,11 @@ namespace AspNetApiMonolithSample.Controllers
             {
                 return await Accept(users, applications, options, display);
             }
-            
+
             var appName = await applications.GetDisplayNameAsync(application);
             var inputs = "";
             foreach (var item in request.Parameters)
-            { 
+            {
                 var key = WebUtility.HtmlEncode(item.Key);
                 var value = WebUtility.HtmlEncode(item.Value);
                 inputs = inputs + $@"<input type=""hidden"" name=""{key}"" value=""{value}"" />";
@@ -294,7 +324,7 @@ namespace AspNetApiMonolithSample.Controllers
             });
 
             return new ContentResult()
-            { 
+            {
                 Content = $@"<!DOCTYPE html>
                     <html>
                     <head>
@@ -323,20 +353,21 @@ namespace AspNetApiMonolithSample.Controllers
             if (response != null)
             {
                 // TODO: Is response required to be passed here?
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalResponseError, display = display });
+                return RedirectToFatal(FatalErrors.ResponseError, display);
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalRequestNull, display = display });
+
+                return RedirectToFatal(FatalErrors.RequestNull, display);
             }
 
             // Retrieve the user data using the unique identifier.
             var user = await users.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalUserNotFound, display = display, client_id = request.ClientId });
+                return RedirectToFatal(FatalErrors.UserNotFound, display);
             }
 
             // Create a new ClaimsIdentity containing the claims that
@@ -347,7 +378,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await applications.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
-                return RedirectToAction(nameof(Login), new { Error = LoginErrors.FatalInvalidClient, display = display, client_id = request.ClientId });
+                return RedirectToFatal(FatalErrors.InvalidClient, display);
             }
 
             // Create a new authentication ticket holding the user identity.
@@ -375,26 +406,18 @@ namespace AspNetApiMonolithSample.Controllers
             var response = HttpContext.GetOpenIdConnectResponse();
             if (response != null)
             {
-                return RedirectToAction(nameof(Login), new
-                {
-                    Error = LoginErrors.FatalResponseError,
-                    display = display
-                });
+
+                return RedirectToFatal(FatalErrors.ResponseError, display);
             }
 
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                return RedirectToAction(nameof(Login), new
-                {
-                    Error = LoginErrors.FatalRequestNull,
-                    display = display
-                });
+                return RedirectToFatal(FatalErrors.RequestNull, display);
             }
 
-            // TODO: PASS request.ClientId!
-            await signInManager.SignOutAsync();
-            // await RemoveAndLogoutClient(HttpContext, request.ClientId, signInManager);
+            // TODO: Should we sign out when denying?
+            // await signInManager.SignOutAsync();
 
             // Notify ASOS that the authorization grant has been denied by the resource owner.
             // Note: OpenIdConnectServerHandler will automatically take care of redirecting
@@ -411,6 +434,16 @@ namespace AspNetApiMonolithSample.Controllers
                 Id = loggedInUser.Id,
                 Email = loggedInUser.Email
             };
+        }
+
+        private IActionResult RedirectToFatal(FatalErrors error, string display = "")
+        {
+            return RedirectToAction(nameof(Error), new { error = error, display = display });
+        }
+
+        private IActionResult RedirectToLogin(LoginErrors error, String returnUrl, String display = "")
+        {
+            return RedirectToAction(nameof(Login), new { error = error, returnUrl = returnUrl, display = display });
         }
     }
 }
