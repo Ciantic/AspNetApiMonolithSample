@@ -40,14 +40,8 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         /// <summary>
-        /// Logs out from all applications by removing the cookies, this method is not used by OpenId specification
-        /// 
-        /// 
+        /// Logs out from all applications by removing the Identity cookies
         /// </summary>
-        /// <param name="signInManager"></param>
-        /// <param name="options"></param>
-        /// <param name="clientId">Client ID to log out, leave this empty if you want to log out from all applications</param>
-        /// <param name="returnUrl"></param>
         /// <returns></returns>
         [HttpGet("[action]")]
         public async Task<IActionResult> Logout(
