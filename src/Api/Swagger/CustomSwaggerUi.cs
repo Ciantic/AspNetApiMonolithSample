@@ -29,7 +29,7 @@ namespace AspNetApiMonolithSample.Swagger
     /// <summary>
     /// Custom swagger index middleware to populate OAuth 2 / OpenId values in the index.html
     /// 
-    /// Looks first a 
+    /// Looks first a wwwroot/baseRoot for a swagger UI, then the Swagger UI manifest.
     /// 
     /// </summary>
     public class CustomSwaggerMiddleware
