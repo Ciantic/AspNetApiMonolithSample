@@ -214,8 +214,6 @@ namespace AspNetApiMonolithSample.Controllers
             return RedirectToLogin(LoginErrors.UsernameOrPassword, returnUrl, display);
         }
 
-        // TODO REPLICATE Authorize, Accept at least, even in same
-        // https://github.com/openiddict/openiddict-core/blob/dev/src/OpenIddict.Mvc/OpenIddictController.cs
         [HttpGet("[action]"), HttpPost("[action]")]
         public virtual async Task<IActionResult> Authorize(
             [FromServices] SignInManager<User> signInManager,
@@ -223,7 +221,7 @@ namespace AspNetApiMonolithSample.Controllers
             [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
             [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
             [FromServices] IOptions<OpenIddictOptions> options,
-            [FromServices] IOptions<List<OpenIddictApplication>> officialApplications,
+            [FromServices] IOptions<Dictionary<string, OpenIddictApplication>> officialApplications,
             [FromServices] IOptions<OpenIdBrandingHtml> brandingHtml,
             [FromQuery] string state = "",
             [FromQuery] string display = "",
@@ -281,7 +279,7 @@ namespace AspNetApiMonolithSample.Controllers
 
             // Check if the application is official (registered in settings) and
             // accept any request by default
-            if (officialApplications.Value.Where(x => x.ClientId == request.ClientId).Count() != 0)
+            if (officialApplications.Value.Any(x => x.Value.ClientId == request.ClientId))
             {
                 return await Accept(users, applications, options, display);
             }

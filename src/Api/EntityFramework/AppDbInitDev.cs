@@ -14,9 +14,9 @@ namespace AspNetApiMonolithSample.EntityFramework
     {
         private readonly AppDbContext db;
         private readonly UserManager<User> userManager;
-        private readonly List<OpenIddictApplication> apps;
+        private readonly Dictionary<string, OpenIddictApplication> apps;
 
-        public AppDbInitDev(AppDbContext db, UserManager<User> userManager, IOptions<List<OpenIddictApplication>> apps)
+        public AppDbInitDev(AppDbContext db, UserManager<User> userManager, IOptions<Dictionary<string, OpenIddictApplication>> apps)
         {
             this.db = db;
             this.userManager = userManager;
@@ -43,7 +43,7 @@ namespace AspNetApiMonolithSample.EntityFramework
             });
             foreach (var app in apps)
             {
-                db.Add(app);
+                db.Add(app.Value);
             }
             await db.SaveChangesAsync();
         }

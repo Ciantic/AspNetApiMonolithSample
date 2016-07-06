@@ -174,7 +174,7 @@ namespace AspNetApiMonolithSample
             }
             
             services.AddTransient<IThingieStore, ThingieStore>();
-            services.Configure<List<OpenIddictApplication>>(Configuration.GetSection("Applications"));
+            services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
             services.Configure<OpenIdBrandingHtml>(Configuration.GetSection("OpenIdBrandingHtml"));
         }
 
