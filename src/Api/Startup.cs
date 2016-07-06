@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using AspNetApiMonolithSample.Models;
 using AspNetApiMonolithSample.EntityFramework;
 using AspNetApiMonolithSample.EntityFramework.Stores;
+using AspNetApiMonolithSample.Swagger;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Hosting;
@@ -205,8 +206,20 @@ namespace AspNetApiMonolithSample
             });
 
             app.UseMvc();
+
             app.UseSwagger("docs/{apiVersion}/definition.json");
-            app.UseSwaggerUi("docs", "/docs/v1/definition.json");
+            app.UseCustomSwaggerUi(new CustomSwaggerMiddlewareOpts()
+            {
+                definitionUrl = "/docs/v1/definition.json",
+                swaggerBaseRoute = "docs",
+                oauth2_clientId = Configuration.GetOrFail("Applications:Docs:ClientId"),
+                oauth2_appName = Configuration.GetOrFail("Applications:Docs:DisplayName"),
+                oauth2_clientSecret = Configuration.GetValue<string>("Applications:Docs:Secret"),
+                oauth2_additionalQueryStringParams = new Dictionary<string, string>
+                {
+                    { "resource", Configuration.GetOrFail("Api:Url") }
+                }
+            });
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
 

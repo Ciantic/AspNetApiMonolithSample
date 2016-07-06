@@ -17,6 +17,7 @@
     "Microsoft.AspNetCore.Authentication.JwtBearer": "1.0.0",
     "Microsoft.AspNetCore.Authentication.OAuth": "1.0.0",
     "Microsoft.AspNetCore.Authorization": "1.0.0",
+    "Microsoft.AspNetCore.Http.Abstractions": "1.0.0",
     "Microsoft.EntityFrameworkCore.SqlServer": "1.0.0",
     "Microsoft.EntityFrameworkCore.SQLite": "1.0.0",
     "Microsoft.Extensions.Options.ConfigurationExtensions": "1.0.0",
