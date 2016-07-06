@@ -17,7 +17,7 @@ namespace AspNetApiMonolithSample.Swagger
 {
     public class CustomSwaggerMiddlewareOpts
     {
-        public string swaggerBaseRoute { get; set; }
+        public string baseRoute { get; set; }
         public string definitionUrl { get; set; }
         public string oauth2_clientId { get; set; } = "";
         public string oauth2_realms { get; set; } = "";
@@ -49,7 +49,7 @@ namespace AspNetApiMonolithSample.Swagger
             _env = env;
             _next = next;
             _opts = opts;            
-            _requestMatcher = new TemplateMatcher(TemplateParser.Parse(_opts.swaggerBaseRoute), new RouteValueDictionary());
+            _requestMatcher = new TemplateMatcher(TemplateParser.Parse(_opts.baseRoute), new RouteValueDictionary());
             _swaggerAssembly = typeof(SwaggerUiMiddleware).GetTypeInfo().Assembly;
         }
 
@@ -64,7 +64,7 @@ namespace AspNetApiMonolithSample.Swagger
             httpContext.Response.StatusCode = 200;
             httpContext.Response.ContentType = "text/html";
 
-            var indexInWwwroot = Path.Combine(_env.WebRootPath, _opts.swaggerBaseRoute, "index.html");
+            var indexInWwwroot = Path.Combine(_env.WebRootPath, _opts.baseRoute, "index.html");
             if (File.Exists(indexInWwwroot))
             {
                 // Try to open a file from wwwroot first
@@ -120,7 +120,7 @@ namespace AspNetApiMonolithSample.Swagger
         public static IApplicationBuilder UseCustomSwaggerUi(this IApplicationBuilder app,
             CustomSwaggerMiddlewareOpts opts)
         {
-            var baseRoute = opts.swaggerBaseRoute.Trim('/');
+            var baseRoute = opts.baseRoute.Trim('/');
             app.UseMiddleware<CustomSwaggerMiddleware>(new object[] {
                 opts
             });

@@ -211,7 +211,7 @@ namespace AspNetApiMonolithSample
             app.UseCustomSwaggerUi(new CustomSwaggerMiddlewareOpts()
             {
                 definitionUrl = "/docs/v1/definition.json",
-                swaggerBaseRoute = "docs",
+                baseRoute = "docs",
                 oauth2_clientId = Configuration.GetOrFail("Applications:Docs:ClientId"),
                 oauth2_appName = Configuration.GetOrFail("Applications:Docs:DisplayName"),
                 oauth2_clientSecret = Configuration.GetValue<string>("Applications:Docs:Secret"),
