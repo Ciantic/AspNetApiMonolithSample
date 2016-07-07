@@ -406,6 +406,7 @@ namespace AspNetApiMonolithSample.Controllers
             return Forbid(options.Value.AuthenticationScheme);
         }
 
+        // TODO: Change to POST or remove
         [HttpGet("[action]")]
         [Authorize(Policy = "COOKIES")]
         public dynamic LoggedIn([RequestUser] User loggedInUser)
