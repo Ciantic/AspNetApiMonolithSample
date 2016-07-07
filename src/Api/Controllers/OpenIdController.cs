@@ -243,19 +243,6 @@ namespace AspNetApiMonolithSample.Controllers
                 return RedirectToFatal(FatalErrors.InvalidClient, display);
             }
 
-            if (!User.Identities.Any(identity => identity.IsAuthenticated))
-            {
-                if (prompt == "none")
-                {
-                    return Redirect(QueryHelpers.AddQueryString(application.RedirectUri, new Dictionary<string, string>()
-                    {
-                        { "error", "login_required" },
-                        { "state", state }
-                    }));
-                }
-                return RedirectToLogin(LoginErrors.Ok, Request.GetEncodedUrl(), display);
-            }
-
             // Check if the application is official (registered in settings) and
             // accept any request by default
             if (_officialApplications.Value.Any(x => x.Value.ClientId == request.ClientId))
