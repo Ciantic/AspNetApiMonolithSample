@@ -242,7 +242,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await _applicationManager.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
-                RedirectToFatal(FatalErrors.InvalidClient, display);
+                return RedirectToFatal(FatalErrors.InvalidClient, display);
             }
 
             if (!User.Identities.Any(identity => identity.IsAuthenticated))
@@ -321,7 +321,8 @@ namespace AspNetApiMonolithSample.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                RedirectToFatal(FatalErrors.UserNotFound);
+                await _signInManager.SignOutAsync();
+                return RedirectToFatal(FatalErrors.UserNotFound);
             }
 
             // Create a new ClaimsIdentity containing the claims that
