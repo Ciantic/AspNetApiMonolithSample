@@ -111,7 +111,8 @@ namespace AspNetApiMonolithSample
 
             var openIdDict = services.AddOpenIddict<User, AppDbContext>()
                 .SetTokenEndpointPath("/OpenId/token")
-                .SetErrorHandlingPath("/OpenId/Error")
+                // TODO: Enabling following does not allow to flush cookies on error
+                // .SetErrorHandlingPath("/OpenId/Error") 
                 .SetAuthorizationEndpointPath("/OpenId/Authorize")
                 .SetLogoutEndpointPath("/OpenId/Logout")
                 .UseJsonWebTokens()

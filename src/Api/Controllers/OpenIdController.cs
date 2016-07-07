@@ -69,6 +69,7 @@ namespace AspNetApiMonolithSample.Controllers
         // Fatal errors are such that are not recoverable, error must be shown, it's not possible to login
         public enum FatalErrors
         {
+            Undefined,
             UserNotFound,
             RequestNull,
             InvalidClient,
