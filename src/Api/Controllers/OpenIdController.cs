@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using System;
 using Microsoft.AspNetCore.WebUtilities;
+using AspNet.Security.OpenIdConnect.Server;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -32,11 +33,28 @@ namespace AspNetApiMonolithSample.Controllers
     public class OpenIdController : ControllerBase
     {
         private readonly ILogger _logger;
+        private readonly OpenIddictApplicationManager<OpenIddictApplication> _applicationManager;
+        private readonly SignInManager<User> _signInManager;
+        private readonly OpenIddictUserManager<User> _userManager;
+        private readonly IOptions<OpenIdBrandingHtml> _brandingHtml;
+        private readonly IOptions<Dictionary<string, OpenIddictApplication>> _officialApplications;
+
 
         public OpenIdController(
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IOptions<OpenIdBrandingHtml> brandingHtml,
+            IOptions<Dictionary<string, OpenIddictApplication>> officialApplications,
+
+            OpenIddictApplicationManager<OpenIddictApplication> applicationManager,
+            SignInManager<User> signInManager,
+            OpenIddictUserManager<User> userManager)
         {
             _logger = loggerFactory.CreateLogger<OpenIdController>();
+            _applicationManager = applicationManager;
+            _signInManager = signInManager;
+            _userManager = userManager;
+            _brandingHtml = brandingHtml;
+            _officialApplications = officialApplications;
         }
 
         /// <summary>
@@ -44,26 +62,10 @@ namespace AspNetApiMonolithSample.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("[action]")]
-        public async Task<IActionResult> Logout(
-            [FromServices] SignInManager<User> signInManager,
-            [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
-            [FromServices] IOptions<OpenIddictOptions> options)
+        public async Task<IActionResult> Logout()
         {
-            var response = HttpContext.GetOpenIdConnectResponse();
-            if (response != null)
-            {
-                return new BadRequestResult();
-            }
-
-            var request = HttpContext.GetOpenIdConnectRequest();
-            if (request == null)
-            {
-                return new BadRequestResult();
-            }
-
-            await signInManager.SignOutAsync();
-
-            return SignOut(options.Value.AuthenticationScheme);
+            await _signInManager.SignOutAsync();
+            return SignOut(OpenIdConnectServerDefaults.AuthenticationScheme);
         }
 
         // Fatal errors are such that are not recoverable, error must be shown, it's not possible to login
@@ -77,11 +79,7 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpGet("[action]")]
-        public IActionResult Error(
-            [FromServices] IOptions<OpenIdBrandingHtml> brandingHtml,
-            [FromQuery] FatalErrors error,
-            [FromQuery] string display = "")
-        {
+        public IActionResult Error([FromQuery] FatalErrors error, [FromQuery] string display = "") {
             var data = JsonConvert.SerializeObject(new
             {
                 Display = display,
@@ -93,7 +91,7 @@ namespace AspNetApiMonolithSample.Controllers
                     <html>
                     <head>
                     <script>var OPENID_ERROR_PAGE = {data};</script>
-                    {brandingHtml?.Value?.Error}
+                    {_brandingHtml?.Value?.Error}
                     </head>
                     <body>
                     <p>ERROR: {error.ToString()}</p>
@@ -101,7 +99,6 @@ namespace AspNetApiMonolithSample.Controllers
                 ContentType = "text/html; charset=utf8"
             };
         }
-
 
         // Login errors are recoverable, new login attempt may work
         public enum LoginErrors
@@ -114,7 +111,7 @@ namespace AspNetApiMonolithSample.Controllers
         }
 
         [HttpGet("[action]")]
-        public IActionResult Login([FromServices] IOptions<OpenIdBrandingHtml> brandingHtml,
+        public IActionResult Login(
             [FromQuery] LoginErrors error = LoginErrors.Ok,
             [FromQuery] string returnUrl = "",
             [FromQuery] string display = "")
@@ -142,7 +139,7 @@ namespace AspNetApiMonolithSample.Controllers
                     <html>
                     <head>
                     <script>var OPENID_LOGIN_PAGE = {data};</script>
-                    {brandingHtml?.Value?.Login}
+                    {_brandingHtml?.Value?.Login}
                     </head>
                     <body>
                     <form action=""{Url.Action(nameof(LoginPost), new { returnUrl = returnUrl, display = display })}"" method=""POST"">
@@ -169,11 +166,12 @@ namespace AspNetApiMonolithSample.Controllers
             public bool RememberMe { get; set; }
         }
 
+        /// <summary>
+        /// Handle login 
+        /// </summary>
         [HttpPost("Login")] // TODO: Anti forgery token
         public async Task<IActionResult> LoginPost(
             [FromForm] LoginViewModel model,
-            [FromServices] UserManager<User> userManager,
-            [FromServices] SignInManager<User> signInManager,
             [FromQuery] string returnUrl = "",
             [FromQuery] string display = "")
         {
@@ -182,16 +180,16 @@ namespace AspNetApiMonolithSample.Controllers
                 return RedirectToFatal(FatalErrors.RedirectMissing, display);
             }
 
-            var user = await userManager.FindByEmailAsync(model.Email);
+            var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null)
             {
-                if (!await userManager.IsEmailConfirmedAsync(user))
+                if (!await _userManager.IsEmailConfirmedAsync(user))
                 {
                     return RedirectToLogin(LoginErrors.EmailIsNotConfirmed, returnUrl, display);
                 }
             }
 
-            var result = await signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
             {
                 return Redirect(returnUrl);
@@ -214,27 +212,35 @@ namespace AspNetApiMonolithSample.Controllers
             return RedirectToLogin(LoginErrors.UsernameOrPassword, returnUrl, display);
         }
 
-        [HttpGet("[action]"), HttpPost("[action]")]
+        /// <summary>
+        /// Authorize OpenId request, shows the accept or deny dialog if applicable
+        /// </summary>
+        [Authorize(Policy = "COOKIES"), HttpGet("[action]"), HttpPost("[action]")]
         public virtual async Task<IActionResult> Authorize(
-            [FromServices] SignInManager<User> signInManager,
-            [FromServices] OpenIddictUserManager<User> users,
-            [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
-            [FromServices] OpenIddictTokenManager<OpenIddictToken> tokens,
-            [FromServices] IOptions<OpenIddictOptions> options,
-            [FromServices] IOptions<Dictionary<string, OpenIddictApplication>> officialApplications,
-            [FromServices] IOptions<OpenIdBrandingHtml> brandingHtml,
             [FromQuery] string state = "",
             [FromQuery] string display = "",
             [FromQuery] string client_id = "",
             [FromQuery] string prompt = ""
             )
         {
+            // Extract the authorization request from the ASP.NET environment.
+            var request = HttpContext.GetOpenIdConnectRequest();
+            if (request == null)
+            {
+                var response = HttpContext.GetOpenIdConnectResponse();
+                if (response.Error == "server_error")
+                {
+                    await _signInManager.SignOutAsync();
+                    return Redirect(HttpContext.Request.GetEncodedUrl());
+                }
+                return RedirectToFatal(FatalErrors.RequestNull, display);
+            }
 
-            var application = await applications.FindByClientIdAsync(client_id);
+            // Retrieve the application details from the database.
+            var application = await _applicationManager.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
-                _logger.LogError($"User tried to login with incorrect client id: ${client_id}");
-                return RedirectToFatal(FatalErrors.InvalidClient, display);
+                RedirectToFatal(FatalErrors.InvalidClient, display);
             }
 
             if (!User.Identities.Any(identity => identity.IsAuthenticated))
@@ -250,41 +256,14 @@ namespace AspNetApiMonolithSample.Controllers
                 return RedirectToLogin(LoginErrors.Ok, Request.GetEncodedUrl(), display);
             }
 
-            var response = HttpContext.GetOpenIdConnectResponse();
-            if (response != null)
-            {
-                _logger.LogWarning($"Invalid OpenId response: ${response.Error}: ${response.ErrorDescription}");
-                if (response.Error == "server_error")
-                {
-                    // Login cookie may have been incorrect, remove and try again
-                    await signInManager.SignOutAsync();
-                    return Redirect(Request.GetEncodedUrl());
-                }
-                else
-                {
-                    return Redirect(QueryHelpers.AddQueryString(application.RedirectUri, new Dictionary<string, string>()
-                    {
-                        { "error", response.Error },
-                        { "error_description", response.ErrorDescription },
-                        { "state", state }
-                    }));
-                }
-            }
-
-            var request = HttpContext.GetOpenIdConnectRequest();
-            if (request == null)
-            {
-                return RedirectToFatal(FatalErrors.RequestNull, display);
-            }
-
             // Check if the application is official (registered in settings) and
             // accept any request by default
-            if (officialApplications.Value.Any(x => x.Value.ClientId == request.ClientId))
+            if (_officialApplications.Value.Any(x => x.Value.ClientId == request.ClientId))
             {
-                return await Accept(users, applications, options, display);
+                return await Accept();
             }
 
-            var appName = await applications.GetDisplayNameAsync(application);
+            var appName = await _applicationManager.GetDisplayNameAsync(application);
             var inputs = "";
             foreach (var item in request.Parameters)
             {
@@ -310,7 +289,7 @@ namespace AspNetApiMonolithSample.Controllers
                     <html>
                     <head>
                     <script>var OPENID_AUTHORIZE_PAGE = {data};</script>
-                    {brandingHtml?.Value?.Authorize}
+                    {_brandingHtml?.Value?.Authorize}
                     </head>
                     <body>
                     <form enctype=""application/x-www-form-urlencoded"" method=""POST"">
@@ -323,87 +302,52 @@ namespace AspNetApiMonolithSample.Controllers
             };
         }
 
+        /// <summary>
+        /// Accept the application request
+        /// </summary>
         [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")] // TODO: Anti forgery token
-        public virtual async Task<IActionResult> Accept(
-            [FromServices] OpenIddictUserManager<User> users,
-            [FromServices] OpenIddictApplicationManager<OpenIddictApplication> applications,
-            [FromServices] IOptions<OpenIddictOptions> options,
-            [FromQuery(Name = "display")] string display = "")
+        public virtual async Task<IActionResult> Accept()
         {
-            var response = HttpContext.GetOpenIdConnectResponse();
-            if (response != null)
-            {
-                // TODO: Is response required to be passed here?
-                return RedirectToFatal(FatalErrors.ResponseError, display);
-            }
-
+            // Extract the authorization request from the ASP.NET environment.
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-
-                return RedirectToFatal(FatalErrors.RequestNull, display);
+                return RedirectToFatal(FatalErrors.RequestNull);
             }
 
-            // Retrieve the user data using the unique identifier.
-            var user = await users.GetUserAsync(User);
+            // Retrieve the profile of the logged in user.
+            var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToFatal(FatalErrors.UserNotFound, display);
+                RedirectToFatal(FatalErrors.UserNotFound);
             }
 
             // Create a new ClaimsIdentity containing the claims that
             // will be used to create an id_token, a token or a code.
-            var identity = await users.CreateIdentityAsync(user, request.GetScopes());
-            Debug.Assert(identity != null);
-
-            var application = await applications.FindByClientIdAsync(request.ClientId);
-            if (application == null)
-            {
-                return RedirectToFatal(FatalErrors.InvalidClient, display);
-            }
+            var identity = await _userManager.CreateIdentityAsync(user, request.GetScopes());
 
             // Create a new authentication ticket holding the user identity.
             var ticket = new AuthenticationTicket(
                 new ClaimsPrincipal(identity),
                 new AuthenticationProperties(),
-                options.Value.AuthenticationScheme);
+                OpenIdConnectServerDefaults.AuthenticationScheme);
 
             ticket.SetResources(request.GetResources());
             ticket.SetScopes(request.GetScopes());
 
-            // Returning a SignInResult will ask ASOS to serialize the specified identity to build appropriate tokens.
-            // Note: you should always make sure the identities you return contain ClaimTypes.NameIdentifier claim.
-            // In this sample, the identity always contains the name identifier returned by the external provider.
+            // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
             return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
         }
 
+        /// <summary>
+        /// Deny the application request
+        /// </summary>
         [Authorize(Policy = "COOKIES"), HttpPost("Authorize/[action]")] // TODO: Anti forgery token
-        public IActionResult Deny(
-            [FromServices] IOptions<OpenIddictOptions> options,
-            [FromServices] SignInManager<User> signInManager,
-            [FromQuery(Name = "display")] string display = ""
-        )
+        public IActionResult Deny()
         {
-            var response = HttpContext.GetOpenIdConnectResponse();
-            if (response != null)
-            {
-
-                return RedirectToFatal(FatalErrors.ResponseError, display);
-            }
-
-            var request = HttpContext.GetOpenIdConnectRequest();
-            if (request == null)
-            {
-                return RedirectToFatal(FatalErrors.RequestNull, display);
-            }
-
-            // TODO: Should we sign out when denying?
-            // await signInManager.SignOutAsync();
-
-            // Notify ASOS that the authorization grant has been denied by the resource owner.
-            // Note: OpenIdConnectServerHandler will automatically take care of redirecting
-            // the user agent to the client application using the appropriate response_mode.
-            return Forbid(options.Value.AuthenticationScheme);
+            // Notify OpenIddict that the authorization grant has been denied by the resource owner
+            // to redirect the user agent to the client application using the appropriate response_mode.
+            return Forbid(OpenIdConnectServerDefaults.AuthenticationScheme);
         }
 
         // TODO: Change to POST or remove
