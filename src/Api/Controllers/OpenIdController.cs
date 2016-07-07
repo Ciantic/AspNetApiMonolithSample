@@ -38,7 +38,6 @@ namespace AspNetApiMonolithSample.Controllers
         private readonly IOptions<OpenIdBrandingHtml> _brandingHtml;
         private readonly IOptions<Dictionary<string, OpenIddictApplication>> _officialApplications;
 
-
         public OpenIdController(
             ILoggerFactory loggerFactory,
             IOptions<OpenIdBrandingHtml> brandingHtml,
@@ -70,7 +69,6 @@ namespace AspNetApiMonolithSample.Controllers
         // Fatal errors are such that are not recoverable, error must be shown, it's not possible to login
         public enum FatalErrors
         {
-            ResponseError,
             UserNotFound,
             RequestNull,
             InvalidClient,
