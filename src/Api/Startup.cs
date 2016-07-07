@@ -111,6 +111,7 @@ namespace AspNetApiMonolithSample
 
             var openIdDict = services.AddOpenIddict<User, AppDbContext>()
                 .SetTokenEndpointPath("/OpenId/token")
+                .SetErrorHandlingPath("/OpenId/Error")
                 .SetAuthorizationEndpointPath("/OpenId/Authorize")
                 .SetLogoutEndpointPath("/OpenId/Logout")
                 .UseJsonWebTokens()

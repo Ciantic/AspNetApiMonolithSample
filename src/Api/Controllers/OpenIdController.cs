@@ -35,7 +35,7 @@ namespace AspNetApiMonolithSample.Controllers
         private readonly OpenIddictApplicationManager<OpenIddictApplication> _applicationManager;
         private readonly SignInManager<User> _signInManager;
         private readonly OpenIddictUserManager<User> _userManager;
-        private readonly IOptions<OpenIdBrandingHtml> _brandingHtml;
+        private readonly OpenIdBrandingHtml _brandingHtml;
         private readonly IOptions<Dictionary<string, OpenIddictApplication>> _officialApplications;
 
         public OpenIdController(
@@ -51,7 +51,7 @@ namespace AspNetApiMonolithSample.Controllers
             _applicationManager = applicationManager;
             _signInManager = signInManager;
             _userManager = userManager;
-            _brandingHtml = brandingHtml;
+            _brandingHtml = brandingHtml.Value;
             _officialApplications = officialApplications;
         }
 
@@ -88,7 +88,7 @@ namespace AspNetApiMonolithSample.Controllers
                     <html>
                     <head>
                     <script>var OPENID_ERROR_PAGE = {data};</script>
-                    {_brandingHtml?.Value?.Error}
+                    {_brandingHtml?.Error}
                     </head>
                     <body>
                     <p>ERROR: {error.ToString()}</p>
@@ -136,7 +136,7 @@ namespace AspNetApiMonolithSample.Controllers
                     <html>
                     <head>
                     <script>var OPENID_LOGIN_PAGE = {data};</script>
-                    {_brandingHtml?.Value?.Login}
+                    {_brandingHtml?.Login}
                     </head>
                     <body>
                     <form action=""{Url.Action(nameof(LoginPost), new { returnUrl = returnUrl, display = display })}"" method=""POST"">
@@ -196,6 +196,7 @@ namespace AspNetApiMonolithSample.Controllers
                 //return RedirectToAction(nameof(SendCode), 
                 //    new { returnUrl = returnUrl, RememberMe = model.RememberMe });
                 // TODO: TWO FACTOR INPUT
+                // _brandingHtml?.TwoFactor
                 return new OkObjectResult("TODO: TWO FACTOR");
             }
             else if (result.IsLockedOut)
@@ -276,7 +277,7 @@ namespace AspNetApiMonolithSample.Controllers
                     <html>
                     <head>
                     <script>var OPENID_AUTHORIZE_PAGE = {data};</script>
-                    {_brandingHtml?.Value?.Authorize}
+                    {_brandingHtml?.Authorize}
                     </head>
                     <body>
                     <form enctype=""application/x-www-form-urlencoded"" method=""POST"">
