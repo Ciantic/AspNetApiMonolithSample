@@ -222,16 +222,19 @@ namespace AspNetApiMonolithSample.Controllers
             [FromQuery] string prompt = ""
             )
         {
+            // Identity cookie that is not valid anymore (e.g. deleted user), still gets through 
+            // the [Authorize] attribute by design. Check that user actually exists.
+            var user = await _userManager.GetUserAsync(HttpContext.User);
+            if (user == null)
+            {
+                await _signInManager.SignOutAsync();
+                return Redirect(HttpContext.Request.GetEncodedUrl());
+            }
+
             // Extract the authorization request from the ASP.NET environment.
             var request = HttpContext.GetOpenIdConnectRequest();
             if (request == null)
             {
-                var response = HttpContext.GetOpenIdConnectResponse();
-                if (response.Error == "server_error")
-                {
-                    await _signInManager.SignOutAsync();
-                    return Redirect(HttpContext.Request.GetEncodedUrl());
-                }
                 return RedirectToFatal(FatalErrors.RequestNull, display);
             }
 
