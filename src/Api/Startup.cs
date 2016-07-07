@@ -104,7 +104,6 @@ namespace AspNetApiMonolithSample
                 .AddFormatterMappings()
                 .AddJsonFormatters();
 
-
             services.AddIdentity<User, Role>(opts => {
                 opts.Cookies.ApplicationCookie.Events = new CookieAuthenticationEvents()
                 {
