@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using System;
+using Microsoft.AspNetCore.Mvc.Routing;
 
 namespace AspNetApiMonolithSample.Controllers
 {
@@ -51,9 +52,11 @@ namespace AspNetApiMonolithSample.Controllers
             if (result.Succeeded)
             {
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var callbackUrl = Url.Action("ConfirmEmail", "Account", new {
+                /*
+                var callbackUrl = Url.Action(nameof(ConfirmEmail), "Account", new {
                     userId = user.Id, code = code
                 });
+                */
                 //await _emailSender.SendEmailAsync(model.Email, "Confirm your account",
                 //    "Please confirm your account by clicking this link: <a href=\"" + callbackUrl + "\">link</a>");
                 _logger.LogInformation(3, $"User created, confirmation code {code}");

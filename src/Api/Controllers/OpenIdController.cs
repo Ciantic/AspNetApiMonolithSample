@@ -233,10 +233,6 @@ namespace AspNetApiMonolithSample.Controllers
 
             // Extract the authorization request from the ASP.NET environment.
             var request = HttpContext.GetOpenIdConnectRequest();
-            if (request == null)
-            {
-                return RedirectToFatal(FatalErrors.RequestNull, display);
-            }
 
             // Retrieve the application details from the database.
             var application = await _applicationManager.FindByClientIdAsync(request.ClientId);
@@ -299,10 +295,6 @@ namespace AspNetApiMonolithSample.Controllers
         {
             // Extract the authorization request from the ASP.NET environment.
             var request = HttpContext.GetOpenIdConnectRequest();
-            if (request == null)
-            {
-                return RedirectToFatal(FatalErrors.RequestNull);
-            }
 
             // Retrieve the profile of the logged in user.
             var user = await _userManager.GetUserAsync(User);
