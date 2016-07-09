@@ -118,10 +118,11 @@ namespace AspNetMonolithSample.Services
             catch (Exception ex) when (ex is MailKit.Security.AuthenticationException || ex is MailKit.ProtocolException)
             {
                 logger.LogError("Unhandled error during smtp connection", ex);
+            } finally
+            {
+                // Save sent at values
+                await appDbContext.SaveChangesAsync();
             }
-
-            // Save sent at values
-            await appDbContext.SaveChangesAsync();
         }
 
         private async Task SendByMailkitAsync(SmtpClient client, Email email)
