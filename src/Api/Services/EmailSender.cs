@@ -108,6 +108,7 @@ namespace AspNetMonolithSample.Services
                             ex is MailKit.ProtocolException
                         )
                         {
+                            email.SentTries += 1;
                             email.ResultMessage = $"{ex.GetType().Name}: {ex.Message}";
                         }
                     }
