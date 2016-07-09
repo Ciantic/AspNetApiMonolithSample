@@ -76,8 +76,8 @@ namespace AspNetApiMonolithSample.Controllers
             RedirectMissing,
         }
 
-        [HttpGet("[action]")]
-        public IActionResult Error([FromQuery] FatalErrors error, [FromQuery] string display = "") {
+        [NonAction]
+        public IActionResult Error([FromQuery] FatalErrors error, [FromQuery, Required] string display = "") {
             var data = JsonConvert.SerializeObject(new
             {
                 Display = display,
@@ -85,6 +85,7 @@ namespace AspNetApiMonolithSample.Controllers
             });
             return new ContentResult()
             {
+                StatusCode = 400,
                 Content = $@"<!DOCTYPE html>
                     <html>
                     <head>
@@ -161,7 +162,7 @@ namespace AspNetApiMonolithSample.Controllers
             public string Password { get; set; }
 
             [Display(Name = "Remember me?")]
-            public bool RememberMe { get; set; }
+            public string RememberMe { get; set; }
         }
 
         /// <summary>
@@ -175,7 +176,7 @@ namespace AspNetApiMonolithSample.Controllers
         {
             if (returnUrl.Length == 0)
             {
-                return RedirectToFatal(FatalErrors.RedirectMissing, display);
+                return Error(FatalErrors.RedirectMissing);
             }
 
             var user = await _userManager.FindByEmailAsync(model.Email);
@@ -187,7 +188,7 @@ namespace AspNetApiMonolithSample.Controllers
                 }
             }
 
-            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe != "", lockoutOnFailure: false);
             if (result.Succeeded)
             {
                 return Redirect(returnUrl);
@@ -215,12 +216,7 @@ namespace AspNetApiMonolithSample.Controllers
         /// Authorize OpenId request, shows the accept or deny dialog if applicable
         /// </summary>
         [Authorize(Policy = "COOKIES"), HttpGet("[action]"), HttpPost("[action]")]
-        public virtual async Task<IActionResult> Authorize(
-            [FromQuery] string state = "",
-            [FromQuery] string display = "",
-            [FromQuery] string client_id = "",
-            [FromQuery] string prompt = ""
-            )
+        public virtual async Task<IActionResult> Authorize()
         {
             // Identity cookie that is not valid anymore (e.g. deleted user), still gets through 
             // the [Authorize] attribute by design. Check that user actually exists.
@@ -238,7 +234,7 @@ namespace AspNetApiMonolithSample.Controllers
             var application = await _applicationManager.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
-                return RedirectToFatal(FatalErrors.InvalidClient, display);
+                return Error(FatalErrors.InvalidClient);
             }
 
             // Check if the application is official (registered in settings) and
@@ -261,6 +257,7 @@ namespace AspNetApiMonolithSample.Controllers
             var data = JsonConvert.SerializeObject(new
             {
                 Display = request.Display,
+                Scopes = request.GetScopes().ToList(),
                 FormMethod = "POST",
                 FormActionAccept = Url.Action(nameof(Accept)),
                 FormActionDeny = Url.Action(nameof(Deny)),
@@ -301,7 +298,7 @@ namespace AspNetApiMonolithSample.Controllers
             if (user == null)
             {
                 await _signInManager.SignOutAsync();
-                return RedirectToFatal(FatalErrors.UserNotFound);
+                return Error(FatalErrors.UserNotFound);
             }
 
             // Create a new ClaimsIdentity containing the claims that
@@ -342,11 +339,6 @@ namespace AspNetApiMonolithSample.Controllers
                 Id = loggedInUser.Id,
                 Email = loggedInUser.Email
             };
-        }
-
-        private IActionResult RedirectToFatal(FatalErrors error, string display = "")
-        {
-            return RedirectToAction(nameof(Error), new { error = error, display = display });
         }
 
         private IActionResult RedirectToLogin(LoginErrors error, String returnUrl, String display = "")

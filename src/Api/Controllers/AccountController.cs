@@ -9,12 +9,19 @@ using Microsoft.Extensions.Logging;
 using System.Linq;
 using System;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Filters;
+using MailKit;
+using MimeKit;
+using MailKit.Net.Smtp;
+using AspNetMonolithSample.Services;
 
 namespace AspNetApiMonolithSample.Controllers
 {
     [Authorize]
     [Route("[controller]")]
-    public class AccountController : ControllerBase
+    public class AccountController
     {
         private readonly UserManager<User> _userManager;
 
@@ -22,14 +29,18 @@ namespace AspNetApiMonolithSample.Controllers
 
         private readonly ILogger _logger;
 
+        private readonly IEmailSender _emailSender;
+
         public AccountController(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IEmailSender emailSender)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = loggerFactory.CreateLogger<AccountController>();
+            _emailSender = emailSender;
         }
 
         public class RegisterAction
@@ -37,7 +48,7 @@ namespace AspNetApiMonolithSample.Controllers
             [EmailAddress]
             [Required]
             public string Email { get; set; } = "";
-            
+
             [Required]
             [MinLength(6)]
             public string Password { get; set; } = "";
@@ -52,14 +63,12 @@ namespace AspNetApiMonolithSample.Controllers
             if (result.Succeeded)
             {
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                /*
-                var callbackUrl = Url.Action(nameof(ConfirmEmail), "Account", new {
-                    userId = user.Id, code = code
-                });
-                */
+                var callbackUrl = "";
+
                 //await _emailSender.SendEmailAsync(model.Email, "Confirm your account",
                 //    "Please confirm your account by clicking this link: <a href=\"" + callbackUrl + "\">link</a>");
-                _logger.LogInformation(3, $"User created, confirmation code {code}");
+                _logger.LogInformation(3, $"User created, confirmation code {code} callback url {callbackUrl}");
+                await _emailSender.Send(action.Email, "Jou maan", "Register", $"Registered {code} the url {callbackUrl}");
                 return true;
             }
             else

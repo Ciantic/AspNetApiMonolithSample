@@ -64,7 +64,7 @@ namespace AspNetApiMonolithSample.Swagger
             httpContext.Response.StatusCode = 200;
             httpContext.Response.ContentType = "text/html";
 
-            var indexInWwwroot = Path.Combine(_env.WebRootPath, _opts.baseRoute, "index.html");
+            var indexInWwwroot = Path.Combine(_env.WebRootPath ?? "", _opts.baseRoute ?? "", "index.html");
             if (File.Exists(indexInWwwroot))
             {
                 // Try to open a file from wwwroot first

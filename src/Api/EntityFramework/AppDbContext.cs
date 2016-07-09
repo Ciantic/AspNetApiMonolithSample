@@ -11,8 +11,15 @@ namespace AspNetApiMonolithSample.EntityFramework
     {
         public DbSet<Thingie> Thingies { get; set; }
 
+        public DbSet<Email> Emails { get; set; }
+
         public AppDbContext(DbContextOptions options) : base(options)
         {
+        }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
         }
     }
 }

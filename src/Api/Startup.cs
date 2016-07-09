@@ -5,11 +5,17 @@ using AspNetApiMonolithSample.Models;
 using AspNetApiMonolithSample.Mvc;
 using AspNetApiMonolithSample.Stores;
 using AspNetApiMonolithSample.Swagger;
+using AspNetMonolithSample.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,29 +37,47 @@ namespace AspNetApiMonolithSample
         public string Error { get; set; } = "";
         public string TwoFactor { get; set; } = "";
     }
-
+    
     public class Startup
     {
         private SqliteConnection inMemorySqliteConnection;
 
-        public IConfigurationRoot Configuration { get; set; }
+        private readonly IConfigurationRoot Configuration;
 
-        private IHostingEnvironment env;
+        private readonly IHostingEnvironment env;
 
         public Startup(IHostingEnvironment env)
         {
             this.env = env;
             var builder = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json")
-                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
-            builder.AddEnvironmentVariables();
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables();
+
             Configuration = builder.Build();
         }
 
+        /// <summary>
+        /// Use redirection for OpenId controllers
+        /// 
+        /// Includes the display property to inform login dialog 
+        /// about the display type (e.g. page or popup).
+        /// </summary>
         private static Task redirectOnlyOpenId(CookieRedirectContext ctx) {
             if (ctx.Request.Path.StartsWithSegments("/OpenId"))
             {
-                ctx.Response.Redirect(ctx.RedirectUri);
+                var request = ctx.HttpContext.GetOpenIdConnectRequest();
+                if (request != null && request.Display != null)
+                {
+                    ctx.Response.Redirect(QueryHelpers.AddQueryString(ctx.RedirectUri, new Dictionary<string, string>
+                    {
+                        { "display", request.Display }
+                    }));
+                } else
+                {
+                    ctx.Response.Redirect(ctx.RedirectUri);
+                }
+                
             }
             return Task.FromResult(0);
         }
@@ -73,7 +97,7 @@ namespace AspNetApiMonolithSample
                 }
                 else
                 {
-                    options.UseSqlServer(Configuration.GetOrFail("DefaultConnectionString"));
+                    options.UseSqlServer(Configuration.GetConnectionString("Database"));
                 }
             });
 
@@ -159,8 +183,19 @@ namespace AspNetApiMonolithSample
             {
                 services.AddTransient<IInitDatabase, AppDbInitProd>();
             }
-            
-            services.AddTransient<IThingieStore, ThingieStore>();
+
+            services.AddScoped<IThingieStore, ThingieStore>();
+            services.AddSingleton<IEmailSender>((s) =>
+            {
+                return new EmailSender(s)
+                {
+                    SmtpHost = Configuration.GetValue<string>("EmailSender:SmtpHost"),
+                    SmtpPort = Configuration.GetValue<int>("EmailSender:SmtpPort"),
+                    SmtpUsername = Configuration.GetValue<string>("EmailSender:SmtpUsername"),
+                    SmtpPassword = Configuration.GetValue<string>("EmailSender:SmtpPassword"),
+                };
+            });
+
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
             services.Configure<OpenIdBrandingHtml>(Configuration.GetSection("OpenIdBrandingHtml"));
         }
@@ -173,6 +208,7 @@ namespace AspNetApiMonolithSample
             
             if (env.IsDevelopment())
             {
+                app.UseDeveloperExceptionPage();
                 app.UseCors(builder =>
                 {
                     builder.AllowAnyOrigin();
@@ -206,6 +242,7 @@ namespace AspNetApiMonolithSample
                     { "resource", Configuration.GetOrFail("Api:Url") }
                 }
             });
+            app.UseStatusCodePages();
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
 
