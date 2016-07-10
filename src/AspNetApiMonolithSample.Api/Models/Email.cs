@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AspNetApiMonolithSample.Api.Models
@@ -30,14 +31,17 @@ namespace AspNetApiMonolithSample.Api.Models
 
         public string Body { get; set; } = "";
 
-        public DateTime CreatedAt { get; set; }
-
-        public DateTime ProcessedAt { get; set; }
-
-        public DateTime SentAt { get; set; }
-
         public int SentTries { get; set; } = 0;
 
         public string ResultMessage { get; set; } = "";
+
+        public Guid ProcessGuid { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+
+        public DateTime? SentAt { get; set; } = null;
+
+        [Timestamp]
+        public byte[] ConcurrencyStamp { get; set; }
     }
 }

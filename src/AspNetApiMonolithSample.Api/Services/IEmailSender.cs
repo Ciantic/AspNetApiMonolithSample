@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace AspNetMonolithSample.Services
+namespace AspNetApiMonolithSample.Api.Services
 {
     public interface IEmailSender
     {

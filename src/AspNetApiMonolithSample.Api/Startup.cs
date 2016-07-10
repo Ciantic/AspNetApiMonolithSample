@@ -3,9 +3,9 @@ using AspNetApiMonolithSample.Api.EntityFramework;
 using AspNetApiMonolithSample.Api.EntityFramework.Stores;
 using AspNetApiMonolithSample.Api.Models;
 using AspNetApiMonolithSample.Api.Mvc;
+using AspNetApiMonolithSample.Api.Services;
 using AspNetApiMonolithSample.Api.Stores;
 using AspNetApiMonolithSample.Api.Swagger;
-using AspNetMonolithSample.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +23,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenIddict;
 using Swashbuckle.Swagger.Model;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -185,10 +186,13 @@ namespace AspNetApiMonolithSample.Api
             }
 
             services.AddScoped<IThingieStore, ThingieStore>();
+            services.AddTransient<EmailService, EmailService>();
             services.AddSingleton<IEmailSender>((s) =>
             {
                 return new EmailSender(s)
                 {
+                    FromName = Configuration.GetValue<string>("EmailSender:FromName"),
+                    FromEmail = Configuration.GetValue<string>("EmailSender:FromEmail"),
                     SmtpHost = Configuration.GetValue<string>("EmailSender:SmtpHost"),
                     SmtpPort = Configuration.GetValue<int>("EmailSender:SmtpPort"),
                     SmtpUsername = Configuration.GetValue<string>("EmailSender:SmtpUsername"),
@@ -197,6 +201,7 @@ namespace AspNetApiMonolithSample.Api
             });
 
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
+            services.Configure<EmailPlaceholders>(Configuration.GetSection("EmailPlaceholders"));
             services.Configure<OpenIdBrandingHtml>(Configuration.GetSection("OpenIdBrandingHtml"));
         }
 
@@ -246,6 +251,45 @@ namespace AspNetApiMonolithSample.Api
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
 
+        /// <summary>
+        /// Experimental development interactive
+        /// 
+        /// Maybe removed in the future
+        /// </summary>
+        private static async Task DevelopmentInteractive(IServiceProvider services)
+        { 
+            while (true)
+            {
+                string command = (Console.ReadLine() ?? "").Trim().ToLower();
+                switch (command)
+                {
+                    case "exit":
+                        {
+                            return;
+                        }
+                    case "mails":
+                        {
+                            var appDbContext = services.GetService(typeof(AppDbContext)) as AppDbContext;
+                            var mails = await appDbContext.Emails.ToListAsync();
+                            Console.WriteLine("List of mails:");
+                            foreach (var m in mails)
+                            {
+                                Console.WriteLine($"* To: {m.ToEmail} Subject: {m.Subject} {m.ProcessGuid} {m.SentAt}");
+                                Console.WriteLine($"* Message:\r\n\r\n{m.Body}\r\n\r\n");
+                            }
+                            Console.WriteLine("End of mails.");
+
+                            break;
+                        }
+                    default:
+                        {
+                            Console.WriteLine("Unregonized command");
+                            break;
+                        }
+                }
+            }
+        }
+
         public static void Main(string[] args)
         {
             var host = new WebHostBuilder()
@@ -254,8 +298,21 @@ namespace AspNetApiMonolithSample.Api
                 .UseKestrel()
                 .UseStartup<Startup>()
                 .Build();
-            
-            host.Run();
+
+            var env = host.Services.GetService(typeof(IHostingEnvironment)) as IHostingEnvironment;
+            if (env.IsDevelopment())
+            {
+                Task.Run(async () =>
+                {
+                    await DevelopmentInteractive(host.Services);
+                });
+
+                host.Run();
+            }
+            else
+            {
+                host.Run();
+            }
         }
     }
 }

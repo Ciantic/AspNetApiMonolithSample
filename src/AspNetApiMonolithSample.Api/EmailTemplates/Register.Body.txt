@@ -1,0 +1,7 @@
+﻿Hello,
+
+You can confirm your account creation by clicking this link:
+
+[confirmlink]
+
+Thank you.

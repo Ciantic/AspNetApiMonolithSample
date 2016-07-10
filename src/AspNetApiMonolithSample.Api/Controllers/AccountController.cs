@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using MailKit;
 using MimeKit;
 using MailKit.Net.Smtp;
-using AspNetMonolithSample.Services;
+using AspNetApiMonolithSample.Api.Services;
 
 namespace AspNetApiMonolithSample.Api.Controllers
 {
@@ -29,18 +29,18 @@ namespace AspNetApiMonolithSample.Api.Controllers
 
         private readonly ILogger _logger;
 
-        private readonly IEmailSender _emailSender;
+        private readonly EmailService _emailService;
 
         public AccountController(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
             ILoggerFactory loggerFactory,
-            IEmailSender emailSender)
+            EmailService emailService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = loggerFactory.CreateLogger<AccountController>();
-            _emailSender = emailSender;
+            _emailService = emailService;
         }
 
         public class RegisterAction
@@ -63,12 +63,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             if (result.Succeeded)
             {
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var callbackUrl = "";
-
-                //await _emailSender.SendEmailAsync(model.Email, "Confirm your account",
-                //    "Please confirm your account by clicking this link: <a href=\"" + callbackUrl + "\">link</a>");
-                _logger.LogInformation(3, $"User created, confirmation code {code} callback url {callbackUrl}");
-                await _emailSender.Send(action.Email, "", "Register", $"Registered {code} the url {callbackUrl}");
+                await _emailService.SendRegisterEmail(user, code);
                 return true;
             }
             else
