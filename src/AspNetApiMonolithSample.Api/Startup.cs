@@ -187,6 +187,7 @@ namespace AspNetApiMonolithSample.Api
 
             services.AddScoped<IThingieStore, ThingieStore>();
             services.AddTransient<EmailService, EmailService>();
+            services.Configure<EmailPlaceholders>(Configuration.GetSection("EmailPlaceholders"));
             services.AddSingleton<IEmailSender>((s) =>
             {
                 return new EmailSender(s)
@@ -201,7 +202,6 @@ namespace AspNetApiMonolithSample.Api
             });
 
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
-            services.Configure<EmailPlaceholders>(Configuration.GetSection("EmailPlaceholders"));
             services.Configure<OpenIdBrandingHtml>(Configuration.GetSection("OpenIdBrandingHtml"));
         }
 
