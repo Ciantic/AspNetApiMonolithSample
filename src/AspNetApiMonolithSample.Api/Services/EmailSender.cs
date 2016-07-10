@@ -39,7 +39,7 @@ namespace AspNetApiMonolithSample.Api.Services
         /// <summary>
         /// Send email
         /// 
-        /// Puts a email to processing queue, and triggers the processing queue.
+        /// Puts an email to processing queue and triggers the processing queue in new thread.
         /// </summary>
         public async Task Send(string toEmail, string toName, string subject, string body)
         {
