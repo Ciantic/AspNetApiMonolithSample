@@ -68,7 +68,7 @@ namespace AspNetApiMonolithSample.Controllers
                 //await _emailSender.SendEmailAsync(model.Email, "Confirm your account",
                 //    "Please confirm your account by clicking this link: <a href=\"" + callbackUrl + "\">link</a>");
                 _logger.LogInformation(3, $"User created, confirmation code {code} callback url {callbackUrl}");
-                await _emailSender.Send(action.Email, "Jou maan", "Register", $"Registered {code} the url {callbackUrl}");
+                await _emailSender.Send(action.Email, "", "Register", $"Registered {code} the url {callbackUrl}");
                 return true;
             }
             else
