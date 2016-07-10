@@ -1,9 +1,9 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
-using AspNetApiMonolithSample.Mvc;
+using AspNetApiMonolithSample.Api.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using AspNetApiMonolithSample.Models;
+using AspNetApiMonolithSample.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Linq;
@@ -17,7 +17,7 @@ using MimeKit;
 using MailKit.Net.Smtp;
 using AspNetMonolithSample.Services;
 
-namespace AspNetApiMonolithSample.Controllers
+namespace AspNetApiMonolithSample.Api.Controllers
 {
     [Authorize]
     [Route("[controller]")]

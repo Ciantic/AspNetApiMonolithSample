@@ -1,5 +1,5 @@
-﻿using AspNetApiMonolithSample.EntityFramework;
-using AspNetApiMonolithSample.Models;
+﻿using AspNetApiMonolithSample.Api.EntityFramework;
+using AspNetApiMonolithSample.Api.Models;
 using MailKit.Net.Smtp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

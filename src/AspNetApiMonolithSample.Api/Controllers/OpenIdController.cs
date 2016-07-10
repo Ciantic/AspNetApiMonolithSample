@@ -1,7 +1,7 @@
 using AspNet.Security.OpenIdConnect.Extensions;
 using AspNet.Security.OpenIdConnect.Server;
-using AspNetApiMonolithSample.Models;
-using AspNetApiMonolithSample.Mvc;
+using AspNetApiMonolithSample.Api.Models;
+using AspNetApiMonolithSample.Api.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -23,7 +23,7 @@ using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace AspNetApiMonolithSample.Controllers
+namespace AspNetApiMonolithSample.Api.Controllers
 {
     /// <summary>
     /// OpenId specific actions, not to be used in API calls

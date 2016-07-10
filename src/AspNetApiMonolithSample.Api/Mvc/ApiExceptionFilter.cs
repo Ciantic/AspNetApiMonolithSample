@@ -1,8 +1,8 @@
 using System;
-using AspNetApiMonolithSample.EntityFramework;
+using AspNetApiMonolithSample.Api.EntityFramework;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace AspNetApiMonolithSample.Mvc
+namespace AspNetApiMonolithSample.Api.Mvc
 {
     public class ApiExceptionFilter : Attribute, IExceptionFilter
     {

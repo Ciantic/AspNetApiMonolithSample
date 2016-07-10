@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace AspNetApiMonolithSample.EntityFramework
+namespace AspNetApiMonolithSample.Api.EntityFramework
 {
     public interface IInitDatabase
     {

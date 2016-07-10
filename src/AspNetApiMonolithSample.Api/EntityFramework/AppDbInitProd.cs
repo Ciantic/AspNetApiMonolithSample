@@ -3,7 +3,7 @@ using OpenIddict;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace AspNetApiMonolithSample.EntityFramework
+namespace AspNetApiMonolithSample.Api.EntityFramework
 {
     public class AppDbInitProd : IInitDatabase
     {

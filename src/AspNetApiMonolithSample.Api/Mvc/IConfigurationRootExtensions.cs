@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Extensions.Configuration;
 
-namespace AspNetApiMonolithSample.EntityFramework
+namespace AspNetApiMonolithSample.Api.EntityFramework
 {
     public static class IConfigurationRootExtensions
     {

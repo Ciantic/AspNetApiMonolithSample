@@ -1,10 +1,10 @@
 using AspNet.Security.OpenIdConnect.Extensions;
-using AspNetApiMonolithSample.EntityFramework;
-using AspNetApiMonolithSample.EntityFramework.Stores;
-using AspNetApiMonolithSample.Models;
-using AspNetApiMonolithSample.Mvc;
-using AspNetApiMonolithSample.Stores;
-using AspNetApiMonolithSample.Swagger;
+using AspNetApiMonolithSample.Api.EntityFramework;
+using AspNetApiMonolithSample.Api.EntityFramework.Stores;
+using AspNetApiMonolithSample.Api.Models;
+using AspNetApiMonolithSample.Api.Mvc;
+using AspNetApiMonolithSample.Api.Stores;
+using AspNetApiMonolithSample.Api.Swagger;
 using AspNetMonolithSample.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -28,7 +28,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace AspNetApiMonolithSample
+namespace AspNetApiMonolithSample.Api
 {
     public class OpenIdBrandingHtml
     {

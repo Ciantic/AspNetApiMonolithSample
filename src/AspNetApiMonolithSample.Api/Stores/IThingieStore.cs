@@ -1,8 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using AspNetApiMonolithSample.Models;
+using AspNetApiMonolithSample.Api.Models;
 
-namespace AspNetApiMonolithSample.Stores
+namespace AspNetApiMonolithSample.Api.Stores
 {
     public interface IThingieStore : IEntityStore<Thingie, int>
     {

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
-namespace AspNetApiMonolithSample.Models
+namespace AspNetApiMonolithSample.Api.Models
 {
     public class Role : IdentityRole
     {

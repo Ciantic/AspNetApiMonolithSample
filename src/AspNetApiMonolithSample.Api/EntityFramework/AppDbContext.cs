@@ -1,11 +1,11 @@
 using System.Collections.Generic;
-using AspNetApiMonolithSample.Models;
+using AspNetApiMonolithSample.Api.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict;
 using System;
 
-namespace AspNetApiMonolithSample.EntityFramework
+namespace AspNetApiMonolithSample.Api.EntityFramework
 {
     public class AppDbContext : OpenIddictDbContext<User, Role>
     {

@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
-using AspNetApiMonolithSample.Models;
-using AspNetApiMonolithSample.Stores;
+using AspNetApiMonolithSample.Api.Models;
+using AspNetApiMonolithSample.Api.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AspNetApiMonolithSample.Controllers
+namespace AspNetApiMonolithSample.Api.Controllers
 {
     [Authorize]
     [Route("[controller]")]

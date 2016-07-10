@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace AspNetApiMonolithSample.Mvc
+namespace AspNetApiMonolithSample.Api.Mvc
 {
     sealed public class ApiException : System.Exception
     {

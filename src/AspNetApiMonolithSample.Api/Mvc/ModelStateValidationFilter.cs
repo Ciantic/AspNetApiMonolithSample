@@ -1,7 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace AspNetApiMonolithSample.Mvc
+namespace AspNetApiMonolithSample.Api.Mvc
 {
     public class ModelStateValidationFilter : Attribute, IActionFilter
     {

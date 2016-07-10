@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
-using AspNetApiMonolithSample.Models;
+using AspNetApiMonolithSample.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict;
@@ -8,7 +8,7 @@ using System;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 
-namespace AspNetApiMonolithSample.EntityFramework
+namespace AspNetApiMonolithSample.Api.EntityFramework
 {
     public class AppDbInitDev : IInitDatabase
     {

@@ -13,7 +13,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AspNetApiMonolithSample.Swagger
+namespace AspNetApiMonolithSample.Api.Swagger
 {
     public class CustomSwaggerMiddlewareOpts
     {

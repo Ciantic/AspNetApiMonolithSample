@@ -2,11 +2,11 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using AspNetApiMonolithSample.Stores;
+using AspNetApiMonolithSample.Api.Stores;
 using System.Threading;
-using AspNetApiMonolithSample.Models;
+using AspNetApiMonolithSample.Api.Models;
 
-namespace AspNetApiMonolithSample.EntityFramework.Stores
+namespace AspNetApiMonolithSample.Api.EntityFramework.Stores
 {
     abstract public class EntityStore<TEntity, TKey> : IEntityStore<TEntity, TKey>
         where TEntity : class, IEntity<TKey>

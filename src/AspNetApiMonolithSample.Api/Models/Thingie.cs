@@ -1,4 +1,4 @@
-namespace AspNetApiMonolithSample.Models
+namespace AspNetApiMonolithSample.Api.Models
 {
     public class Thingie : IEntity<int>
     {

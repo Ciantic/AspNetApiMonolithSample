@@ -1,6 +1,6 @@
 using System;
 
-namespace AspNetApiMonolithSample.Models
+namespace AspNetApiMonolithSample.Api.Models
 {
     public interface IEntity<TKey>
     where TKey : IEquatable<TKey>

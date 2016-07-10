@@ -1,9 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
-using AspNetApiMonolithSample.Stores;
-using AspNetApiMonolithSample.Models;
+using AspNetApiMonolithSample.Api.Stores;
+using AspNetApiMonolithSample.Api.Models;
 
-namespace AspNetApiMonolithSample.EntityFramework.Stores
+namespace AspNetApiMonolithSample.Api.EntityFramework.Stores
 {
     public class ThingieStore : EntityStore<Thingie, int>, IThingieStore
     {

@@ -1,4 +1,4 @@
-namespace AspNetApiMonolithSample.EntityFramework
+namespace AspNetApiMonolithSample.Api.EntityFramework
 {
     public class EntityNotFoundException : System.Exception
     {

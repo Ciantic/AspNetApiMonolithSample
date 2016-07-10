@@ -1,10 +1,10 @@
 using System;
 using System.Threading.Tasks;
-using AspNetApiMonolithSample.Models;
+using AspNetApiMonolithSample.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace AspNetApiMonolithSample.Mvc
+namespace AspNetApiMonolithSample.Api.Mvc
 {
     /// <summary>
     /// Request user modelbinder from UserManager automatically

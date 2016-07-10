@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AspNetApiMonolithSample.Stores
+namespace AspNetApiMonolithSample.Api.Stores
 {
     public interface IEntityStore<TEntity, TKey>
     {

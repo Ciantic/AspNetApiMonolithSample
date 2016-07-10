@@ -2,7 +2,7 @@
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace AspNetApiMonolithSample.Models
+namespace AspNetApiMonolithSample.Api.Models
 {
     /// <summary>
     /// Naive Email storage class.
