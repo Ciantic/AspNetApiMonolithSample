@@ -41,9 +41,17 @@ namespace AspNetApiMonolithSample.Api.Services
             });
         }
 
-        public void SendResetPassword(User user)
+        private class ResetPasswordEmailModel : IEmailModel
         {
+            public string ResetUrl { get; set; } = "";
+        }
 
+        public async Task SendResetPasswordEmail(User user, string code)
+        {
+            await Send(user.Email, user.FullName, "ResetPassword", new ResetPasswordEmailModel()
+            {
+                ResetUrl = $"http://example.com/{code}"
+            });
         }
 
         private async Task Send(string email, string name, string templateName, IEmailModel model)

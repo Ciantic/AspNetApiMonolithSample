@@ -143,6 +143,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             }
             var code = await _userManager.GeneratePasswordResetTokenAsync(user);
             // TODO: Send the code / reset link to user email
+            await _emailService.SendResetPasswordEmail(user, code);
 
             return true;
         }
