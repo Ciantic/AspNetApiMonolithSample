@@ -52,6 +52,23 @@ namespace AspNetApiMonolithSample.Api.Services
             
             var subject = new StringBuilder("");
             var body = new StringBuilder("");
+            var values = new Dictionary<string, string>();
+
+            foreach (var p in _emailPlaceholders)
+            {
+                values.Add(p.Key.ToLower(), p.Value);
+            }
+
+            foreach (var p in props)
+            {
+                values.Add(p.Name.ToLower(), p.GetValue(model) as string);
+            }
+
+            foreach (var v in values)
+            {
+                subject.Replace($"[{v.Key}]", v.Value);
+                body.Replace($"[{v.Key}]", v.Value);
+            }
 
             await _emailSender.Send(email, name, subject.ToString(), body.ToString());
         }
