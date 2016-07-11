@@ -202,6 +202,7 @@ namespace AspNetApiMonolithSample.Api
                     FromEmail = Configuration.GetValue<string>("EmailSender:FromEmail"),
                     SmtpHost = Configuration.GetValue<string>("EmailSender:SmtpHost"),
                     SmtpPort = Configuration.GetValue<int>("EmailSender:SmtpPort"),
+                    SmtpSsl = Configuration.GetValue<bool>("EmailSender:SmtpSsl", true),
                     SmtpUsername = Configuration.GetValue<string>("EmailSender:SmtpUsername"),
                     SmtpPassword = Configuration.GetValue<string>("EmailSender:SmtpPassword"),
                 };

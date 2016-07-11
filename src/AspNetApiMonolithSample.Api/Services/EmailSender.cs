@@ -26,10 +26,11 @@ namespace AspNetApiMonolithSample.Api.Services
     {
         public string FromName { get; set; } = "";
         public string FromEmail { get; set; } = "";
+        public string SmtpHost { get; set; } = "";
+        public int SmtpPort { get; set; } = 0;
+        public bool SmtpSsl { get; set; } = false;
         public string SmtpUsername { get; set; } = "";
         public string SmtpPassword { get; set; } = "";
-        public int SmtpPort { get; set; } = 0;
-        public string SmtpHost { get; set; } = "";
 
         private readonly IServiceProvider _services;
 
@@ -143,9 +144,8 @@ namespace AspNetApiMonolithSample.Api.Services
             {
                 using (var client = new SmtpClient())
                 {
-                    var useSsl = false;
                     client.AuthenticationMechanisms.Remove("XOAUTH2");
-                    client.Connect(SmtpHost, SmtpPort, useSsl);
+                    client.Connect(SmtpHost, SmtpPort, SmtpSsl);
                     client.Authenticate(SmtpUsername, SmtpPassword);
 
                     // Mark emails as sent if they didn't throw exception
