@@ -65,6 +65,7 @@ namespace AspNetApiMonolithSample.Api.Services
         }
 
         Task _processingQueue = Task.CompletedTask;
+        object _processingQueueLock = new object();
 
         /// <summary>
         /// Start processing the queue
@@ -73,11 +74,13 @@ namespace AspNetApiMonolithSample.Api.Services
         {
             _processingQueue.ContinueWith(t1 =>
             {
-                _processingQueue = ProcessQueue().ContinueWith(t2 =>
-                {
-                    var logger = _services.GetService(typeof(ILogger)) as ILogger;
-                    logger.LogError("Unhandled error during processing email queue", t2.Exception);
-                }, TaskContinuationOptions.OnlyOnFaulted);
+                lock (_processingQueueLock) { 
+                    _processingQueue = ProcessQueue().ContinueWith(t2 =>
+                    {
+                        var logger = _services.GetService(typeof(ILogger)) as ILogger;
+                        logger.LogError("Unhandled error during processing email queue", t2.Exception);
+                    }, TaskContinuationOptions.OnlyOnFaulted);
+                }
             });
         }
 
