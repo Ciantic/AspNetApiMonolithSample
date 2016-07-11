@@ -6,8 +6,9 @@
     "tasks": [
         {
             "taskName": "build",
-            "args": ["src/Api"],
+            "args": ["src/AspNetApiMonolithSample.Api/"],
             "isBuildCommand": true,
+            "isWatching": true,
             "problemMatcher": "$msCompile"
         }
     ]
