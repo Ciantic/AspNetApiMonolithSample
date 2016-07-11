@@ -103,7 +103,7 @@ namespace AspNetApiMonolithSample.Api.Services
                 var processGuid = Guid.NewGuid();
 
                 // Mark mails as being processed at
-                var emails = await appDbContext.Emails.Where(x => x.ProcessGuid == Guid.Empty && x.SentAt == null && x.SentTries < 3).ToListAsync();
+                var emails = await appDbContext.Emails.Where(x => x.ProcessGuid == Guid.Empty && x.SentTries < 3).ToListAsync();
                 if (emails.Count == 0)
                 {
                     return;
@@ -190,7 +190,6 @@ namespace AspNetApiMonolithSample.Api.Services
             {
                 await client.SendAsync(m);
                 email.SentAt = DateTime.Now;
-                email.ProcessGuid = Guid.Empty;
             }
             catch (Exception ex) when (
                 ex is MailKit.ServiceNotConnectedException ||
