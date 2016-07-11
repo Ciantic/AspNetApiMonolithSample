@@ -38,6 +38,12 @@ namespace AspNetApiMonolithSample.Api
         public string Error { get; set; } = "";
         public string TwoFactor { get; set; } = "";
     }
+
+    public class FrontendUrls
+    {
+        public string ResetPassword { get; set; } = "";
+        public string RegisterConfirmEmail { get; set; } = "";
+    }
     
     public class Startup
     {
@@ -203,6 +209,7 @@ namespace AspNetApiMonolithSample.Api
 
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
             services.Configure<OpenIdBrandingHtml>(Configuration.GetSection("OpenIdBrandingHtml"));
+            services.Configure<FrontendUrls>(Configuration.GetSection("FrontendUrls"));
         }
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
@@ -260,13 +267,10 @@ namespace AspNetApiMonolithSample.Api
         { 
             while (true)
             {
+                Console.Write("> ");
                 string command = (Console.ReadLine() ?? "").Trim().ToLower();
                 switch (command)
                 {
-                    case "exit":
-                        {
-                            return;
-                        }
                     case "mails":
                         {
                             Console.WriteLine("List of mails:");
@@ -275,8 +279,9 @@ namespace AspNetApiMonolithSample.Api
                                 var mails = await appDbContext.Emails.ToListAsync();
                                 foreach (var m in mails)
                                 {
-                                    Console.WriteLine($"* To: {m.ToEmail} Subject: {m.Subject} {m.ProcessGuid}");
-                                    Console.WriteLine($"* Message:\r\n\r\n{m.Body}\r\n\r\n");
+                                    Console.WriteLine($"* To: {m.ToEmail} ({m.ProcessGuid})");
+                                    Console.WriteLine($"Subject: {m.Subject} ");
+                                    Console.WriteLine($"Message:\r\n\r\n{m.Body}\r\n\r\n");
                                 }
                             }
                             Console.WriteLine("End of mails.");
@@ -284,7 +289,7 @@ namespace AspNetApiMonolithSample.Api
                         }
                     default:
                         {
-                            Console.WriteLine("Unregonized command");
+                            Console.WriteLine($"'{command}' is not recognized command.");
                             break;
                         }
                 }
@@ -303,11 +308,13 @@ namespace AspNetApiMonolithSample.Api
             var env = host.Services.GetService(typeof(IHostingEnvironment)) as IHostingEnvironment;
             if (env.IsDevelopment())
             {
-                Task.Run(() =>
-                {
-                    host.Run();
-                });
-                DevelopmentInteractive(host.Services).Wait();
+                if (new List<string>(args).Contains("dev")) {
+                    Task.Run(() =>
+                    {
+                        DevelopmentInteractive(host.Services).Wait();
+                    });
+                }
+                host.Run();
             }
             else
             {

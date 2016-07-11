@@ -16,6 +16,7 @@ using MailKit;
 using MimeKit;
 using MailKit.Net.Smtp;
 using AspNetApiMonolithSample.Api.Services;
+using System.Net;
 
 namespace AspNetApiMonolithSample.Api.Controllers
 {

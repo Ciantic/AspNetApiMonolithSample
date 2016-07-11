@@ -54,7 +54,8 @@
     "emitEntryPoint": true,
     "preserveCompilationContext": true,
     "copyToOutput": [
-      "appsettings.json"
+      "appsettings.json",
+      "EmailTemplates/**"
     ]
   },
 
@@ -65,6 +66,7 @@
   },
   "publishOptions": {
     "include": [
+      "EmailTemplates",
       "wwwroot",
       "appsettings.json",
       "web.config"

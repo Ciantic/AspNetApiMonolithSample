@@ -5,6 +5,15 @@ namespace AspNetApiMonolithSample.Api.Models
 {
     public class User : OpenIddictUser
     {
-        public string FullName { get; set; } = "";
+        public string LanguageCode { get; set; } = "";
+        public string FistName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string FullName
+        {
+            get
+            {
+                return $"{FistName} {LastName}".Trim();
+            }
+        }
     }
 }

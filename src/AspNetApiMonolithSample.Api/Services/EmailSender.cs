@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace AspNetApiMonolithSample.Api.Services
 {
     /// <summary>
-    /// Email Service implemented using MailKit and MimeKit
+    /// Email Sender singleton implemented using MailKit and MimeKit
     /// 
     /// This interface is relatively naive, it does not include ability to send emails to  
     /// multiple users etc.
@@ -64,8 +64,8 @@ namespace AspNetApiMonolithSample.Api.Services
             StartProcessQueue();
         }
 
-        Task _processingQueue = Task.CompletedTask;
-        object _processingQueueLock = new object();
+        private Task _processingQueue = Task.CompletedTask;
+        private object _processingQueueLock = new object();
 
         /// <summary>
         /// Start processing the queue
@@ -77,8 +77,9 @@ namespace AspNetApiMonolithSample.Api.Services
                 lock (_processingQueueLock) { 
                     _processingQueue = ProcessQueue().ContinueWith(t2 =>
                     {
-                        var logger = _services.GetService(typeof(ILogger)) as ILogger;
-                        logger.LogError("Unhandled error during processing email queue", t2.Exception);
+                        var logger = _services.GetService<ILogger<EmailService>>();
+                        logger.LogError($"Unhandled error during processing email queue: {t2.Exception.Message}", t2.Exception);
+                        
                     }, TaskContinuationOptions.OnlyOnFaulted);
                 }
             });
@@ -96,7 +97,7 @@ namespace AspNetApiMonolithSample.Api.Services
         {
             Thread.Sleep(500); // Gather all emails inserted in last 500ms, and process them
 
-            var logger = _services.GetService<ILogger>();
+            var logger = _services.GetService<ILogger<EmailService>>();
             var appDbContextOpts = _services.GetService<DbContextOptions<AppDbContext>>();
             using (var appDbContext = new AppDbContext(appDbContextOpts))
             {
@@ -176,15 +177,17 @@ namespace AspNetApiMonolithSample.Api.Services
             m.From.Add(new MailboxAddress(email.FromName, email.FromEmail));
             m.To.Add(new MailboxAddress(email.ToName, email.ToEmail));
             m.Subject = email.Subject;
-            /*
+            
             var bodyBuilder = new BodyBuilder();
-            bodyBuilder.HtmlBody = @"<b>This is bold and this is <i>italic</i></b>";
-            message.Body = bodyBuilder.ToMessageBody();
-            */
+            bodyBuilder.HtmlBody = email.Body;
+            m.Body = bodyBuilder.ToMessageBody();
+            
+            /*
             m.Body = new TextPart("plain")
             {
                 Text = email.Body
             };
+            */
 
             try
             {
