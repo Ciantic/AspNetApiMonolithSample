@@ -53,7 +53,7 @@ namespace AspNetApiMonolithSample.Api.Services
         /// <summary>
         /// Send register email
         /// </summary>
-        /// <exception cref="IOException">If the email template accessing fails</exception>
+        /// <exception cref="IOException">If the email template IO fails</exception>
         public async Task SendRegisterEmail(User user, string code)
         {
             await Send("Register", user.LanguageCode, user.Email, user.FullName, new RegisterEmailModel()
@@ -67,6 +67,10 @@ namespace AspNetApiMonolithSample.Api.Services
             public string ResetUrl { get; set; } = "";
         }
 
+        /// <summary>
+        /// Send reset password email
+        /// </summary>
+        /// <exception cref="IOException">If the email template IO fails</exception>
         public async Task SendResetPasswordEmail(User user, string code)
         {
             await Send("ResetPassword", user.LanguageCode, user.Email, user.FullName, new ResetPasswordEmailModel()

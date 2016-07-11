@@ -142,10 +142,9 @@ namespace AspNetApiMonolithSample.Api.Controllers
                 // Don't reveal that the user does not exist or is not confirmed
                 return true;
             }
-            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
-            // TODO: Send the code / reset link to user email
-            await _emailService.SendResetPasswordEmail(user, code);
 
+            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+            await _emailService.SendResetPasswordEmail(user, code);
             return true;
         }
 
