@@ -18,6 +18,11 @@ namespace AspNetApiMonolithSample.Api.Services
         
     }
 
+    /// <summary>
+    /// Email service
+    /// 
+    /// Creates emails from the templates
+    /// </summary>
     public class EmailService
     {
         private readonly ILogger<EmailService> _logger;
@@ -53,12 +58,15 @@ namespace AspNetApiMonolithSample.Api.Services
         /// <summary>
         /// Send register email
         /// </summary>
+        /// <param name="code">Code for confirmation</param>
         /// <exception cref="IOException">If the email template IO fails</exception>
         public async Task SendRegisterEmail(User user, string code)
         {
             await Send("Register", user.LanguageCode, user.Email, user.FullName, new RegisterEmailModel()
             {
-                ConfirmUrl = _frontendUrls.RegisterConfirmEmail.Replace("{code}", WebUtility.UrlEncode(code))
+                ConfirmUrl = _frontendUrls.RegisterConfirmEmail
+                    .Replace("{code}", WebUtility.UrlEncode(code))
+                    .Replace("{email}", WebUtility.UrlEncode(user.Email))
             });
         }
 
@@ -70,16 +78,36 @@ namespace AspNetApiMonolithSample.Api.Services
         /// <summary>
         /// Send reset password email
         /// </summary>
+        /// <param name="code">Code for confirmation</param>
         /// <exception cref="IOException">If the email template IO fails</exception>
         public async Task SendResetPasswordEmail(User user, string code)
         {
             await Send("ResetPassword", user.LanguageCode, user.Email, user.FullName, new ResetPasswordEmailModel()
             {
-                ResetUrl = _frontendUrls.ResetPassword.Replace("{code}", WebUtility.UrlEncode(code))
+                ResetUrl = _frontendUrls.ResetPassword
+                    .Replace("{code}", WebUtility.UrlEncode(code))
+                    .Replace("{email}", WebUtility.UrlEncode(user.Email))
             });
         }
 
-        private async Task Send(string templateName, string languageCode, string email, string name, IEmailModel model)
+        /// <summary>
+        /// Send the email
+        /// 
+        /// Looks for templates 
+        /// `EmailTemplates/{templateName}(.{languageCode}).Subject.txt` and
+        /// `EmailTemplates/{templateName}(.{languageCode}).Body.html`
+        /// 
+        /// In addition to `model` also Option section `EmailPlaceholders` is used 
+        /// in placeholders.
+        /// </summary>
+        /// <param name="templateName">Name of the template, </param>
+        /// <param name="languageCode"></param>
+        /// <param name="toEmail"></param>
+        /// <param name="toName"></param>
+        /// <param name="model">Used as placeholders</param>
+        /// <exception cref="IOException">Thrown when the template can't be read</exception>
+        /// <returns></returns>
+        private async Task Send(string templateName, string languageCode, string toEmail, string toName, IEmailModel model)
         {
             var props = model.GetType().GetProperties();
             
@@ -127,7 +155,7 @@ namespace AspNetApiMonolithSample.Api.Services
                 body.Replace($"[{v.Key}]", v.Value);
             }
 
-            await _emailSender.Send(email, name, subject.ToString(), body.ToString());
+            await _emailSender.Send(toEmail, toName, subject.ToString(), body.ToString());
         }
     }
 }
