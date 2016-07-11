@@ -1,5 +1,6 @@
 ﻿using AspNetApiMonolithSample.Api.EntityFramework;
 using AspNetApiMonolithSample.Api.Models;
+using Microsoft.Extensions.DependencyInjection;
 using MailKit.Net.Smtp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -7,6 +8,7 @@ using MimeKit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AspNetApiMonolithSample.Api.Services
@@ -43,31 +45,40 @@ namespace AspNetApiMonolithSample.Api.Services
         /// </summary>
         public async Task Send(string toEmail, string toName, string subject, string body)
         {
-            var appDbContext = _services.GetService(typeof(AppDbContext)) as AppDbContext;
-            appDbContext.Emails.Add(new Email()
+            var appDbContextOpts = _services.GetService<DbContextOptions<AppDbContext>>();
+            using (var appDbContext = new AppDbContext(appDbContextOpts))
             {
-                FromEmail = FromEmail,
-                FromName = FromName,
-                ToEmail = toEmail,
-                ToName = toName,
-                Body = body,
-                Subject = subject,
-                CreatedAt = DateTime.Now,
-            });
-            await appDbContext.SaveChangesAsync();
-            StartProcessQueue(ProcessQueue());
+                appDbContext.Emails.Add(new Email()
+                {
+                    FromEmail = FromEmail,
+                    FromName = FromName,
+                    ToEmail = toEmail,
+                    ToName = toName,
+                    Body = body,
+                    Subject = subject,
+                    CreatedAt = DateTime.Now,
+                });
+                await appDbContext.SaveChangesAsync();
+            }
+                
+            StartProcessQueue();
         }
+
+        Task _processingQueue = Task.CompletedTask;
 
         /// <summary>
         /// Start processing the queue
         /// </summary>
-        private void StartProcessQueue(Task task)
+        private void StartProcessQueue()
         {
-            task.ContinueWith(t =>
+            _processingQueue.ContinueWith(t1 =>
             {
-                var logger = _services.GetService(typeof(ILogger)) as ILogger;
-                logger.LogError("Unhandled error during processing email queue", t.Exception);
-            }, TaskContinuationOptions.OnlyOnFaulted);
+                _processingQueue = ProcessQueue().ContinueWith(t2 =>
+                {
+                    var logger = _services.GetService(typeof(ILogger)) as ILogger;
+                    logger.LogError("Unhandled error during processing email queue", t2.Exception);
+                }, TaskContinuationOptions.OnlyOnFaulted);
+            });
         }
 
         /// <summary>
@@ -80,25 +91,37 @@ namespace AspNetApiMonolithSample.Api.Services
         /// </summary>
         private async Task ProcessQueue()
         {
-            var appDbContext = _services.GetService(typeof(AppDbContext)) as AppDbContext;
-            var logger = _services.GetService(typeof(ILogger)) as ILogger;
-            var processGuid = Guid.NewGuid();
+            Thread.Sleep(500); // Gather all emails inserted in last 500ms, and process them
 
-            // Mark mails as being processed at
-            var emails = await appDbContext.Emails.Where(x => x.ProcessGuid == Guid.Empty && x.SentTries < 3).ToListAsync();
-            foreach (var e in emails)
+            var logger = _services.GetService<ILogger>();
+            var appDbContextOpts = _services.GetService<DbContextOptions<AppDbContext>>();
+            using (var appDbContext = new AppDbContext(appDbContextOpts))
             {
-                e.ProcessGuid = processGuid;
+                var processGuid = Guid.NewGuid();
+
+                // Mark mails as being processed at
+                var emails = await appDbContext.Emails.Where(x => x.ProcessGuid == Guid.Empty && x.SentTries < 3).ToListAsync();
+                if (emails.Count == 0)
+                {
+                    return;
+                }
+
+                foreach (var e in emails)
+                {
+                    e.ProcessGuid = processGuid;
+                }
+
+                // This only succeeds if the emails has not changed due to concurrency stamp
+                try
+                {
+                    await appDbContext.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException) {}
+
+                await ProcessSend(appDbContext, logger, processGuid);
+
             }
 
-            // This only succeeds if the emails has not changed due to concurrency stamp
-            try
-            {
-                await appDbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException) {}
-
-            await ProcessSend(appDbContext, logger, processGuid);
         }
 
         /// <summary>
@@ -107,6 +130,10 @@ namespace AspNetApiMonolithSample.Api.Services
         private async Task ProcessSend(AppDbContext appDbContext, ILogger logger, Guid processGuid)
         {
             var emails = await appDbContext.Emails.Where(x => x.ProcessGuid == processGuid).ToListAsync();
+            if (emails.Count == 0)
+            {
+                return;
+            }
 
             try
             {

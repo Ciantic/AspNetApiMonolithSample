@@ -269,16 +269,17 @@ namespace AspNetApiMonolithSample.Api
                         }
                     case "mails":
                         {
-                            var appDbContext = services.GetService(typeof(AppDbContext)) as AppDbContext;
-                            var mails = await appDbContext.Emails.ToListAsync();
                             Console.WriteLine("List of mails:");
-                            foreach (var m in mails)
-                            {
-                                Console.WriteLine($"* To: {m.ToEmail} Subject: {m.Subject} {m.ProcessGuid} {m.SentAt}");
-                                Console.WriteLine($"* Message:\r\n\r\n{m.Body}\r\n\r\n");
+                            var appDbContextOpts = services.GetService<DbContextOptions<AppDbContext>>();
+                            using (var appDbContext = new AppDbContext(appDbContextOpts)) { 
+                                var mails = await appDbContext.Emails.ToListAsync();
+                                foreach (var m in mails)
+                                {
+                                    Console.WriteLine($"* To: {m.ToEmail} Subject: {m.Subject} {m.ProcessGuid}");
+                                    Console.WriteLine($"* Message:\r\n\r\n{m.Body}\r\n\r\n");
+                                }
                             }
                             Console.WriteLine("End of mails.");
-
                             break;
                         }
                     default:
@@ -302,12 +303,11 @@ namespace AspNetApiMonolithSample.Api
             var env = host.Services.GetService(typeof(IHostingEnvironment)) as IHostingEnvironment;
             if (env.IsDevelopment())
             {
-                Task.Run(async () =>
+                Task.Run(() =>
                 {
-                    await DevelopmentInteractive(host.Services);
+                    host.Run();
                 });
-
-                host.Run();
+                DevelopmentInteractive(host.Services).Wait();
             }
             else
             {

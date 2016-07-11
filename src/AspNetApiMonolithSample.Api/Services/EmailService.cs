@@ -37,6 +37,10 @@ namespace AspNetApiMonolithSample.Api.Services
         {
             await Send(user.Email, user.FullName, "Register", new RegisterEmailModel()
             {
+                ConfirmUrl = $"http://example.com/{code}/2"
+            });
+            await Send(user.Email, user.FullName, "Register", new RegisterEmailModel()
+            {
                 ConfirmUrl = $"http://example.com/{code}"
             });
         }
