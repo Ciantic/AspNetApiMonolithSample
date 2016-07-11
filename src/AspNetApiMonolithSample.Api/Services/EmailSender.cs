@@ -145,8 +145,8 @@ namespace AspNetApiMonolithSample.Api.Services
                 using (var client = new SmtpClient())
                 {
                     client.AuthenticationMechanisms.Remove("XOAUTH2");
-                    client.Connect(SmtpHost, SmtpPort, SmtpSsl);
-                    client.Authenticate(SmtpUsername, SmtpPassword);
+                    await client.ConnectAsync(SmtpHost, SmtpPort, SmtpSsl);
+                    await client.AuthenticateAsync(SmtpUsername, SmtpPassword);
 
                     // Mark emails as sent if they didn't throw exception
                     foreach (var email in emails)
@@ -154,7 +154,7 @@ namespace AspNetApiMonolithSample.Api.Services
                         await SendMail(client, email);
                     }
 
-                    client.Disconnect(true);
+                    await client.DisconnectAsync(true);
                 }
             }
             catch (Exception ex) when (
