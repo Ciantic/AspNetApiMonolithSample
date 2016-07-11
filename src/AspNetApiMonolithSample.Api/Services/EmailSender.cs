@@ -162,7 +162,8 @@ namespace AspNetApiMonolithSample.Api.Services
                 ex is MailKit.ProtocolException
             )
             {
-                logger.LogError($"Unhandled error during smtp connection, email process GUID {processGuid}", ex);
+                logger.LogError($"Unhandled error during smtp connection, email process GUID {processGuid}, {ex.Message}", ex);
+                throw;
             }
             finally
             {
