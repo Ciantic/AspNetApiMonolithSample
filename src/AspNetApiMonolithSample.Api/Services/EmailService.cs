@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AspNetApiMonolithSample.Api.Services
@@ -38,10 +39,6 @@ namespace AspNetApiMonolithSample.Api.Services
             await Send(user.Email, user.FullName, "Register", new RegisterEmailModel()
             {
                 ConfirmUrl = $"http://example.com/{code}/2"
-            });
-            await Send(user.Email, user.FullName, "Register", new RegisterEmailModel()
-            {
-                ConfirmUrl = $"http://example.com/{code}"
             });
         }
 
