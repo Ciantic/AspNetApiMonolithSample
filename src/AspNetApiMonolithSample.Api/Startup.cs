@@ -215,7 +215,14 @@ namespace AspNetApiMonolithSample.Api
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole(LogLevel.Debug);
+            if (env.IsDevelopment())
+            {
+                loggerFactory.AddConsole(LogLevel.Debug);
+            } else
+            {
+                loggerFactory.AddConsole(LogLevel.Warning);
+            }
+
             app.UseStaticFiles();
             app.UseIdentity();
             
