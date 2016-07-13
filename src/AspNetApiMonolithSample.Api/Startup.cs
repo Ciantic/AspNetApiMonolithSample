@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.WebUtilities;
@@ -89,6 +90,17 @@ namespace AspNetApiMonolithSample.Api
             return Task.FromResult(0);
         }
 
+        public static string groupActions(ApiDescription s)
+        { 
+            var r = new Regex(@"Controllers.(.*?)Controller");
+            var m = r.Match(s.ActionDescriptor.DisplayName);
+            if (m.Success)
+            {
+                return m.Groups[1].Value;
+            }
+            return null;
+        }
+
         public void ConfigureServices(IServiceCollection services)
         {
             // Ordering matters, Identity first, then MvcCore and then Authorization
@@ -154,16 +166,7 @@ namespace AspNetApiMonolithSample.Api
             services.AddSwaggerGen(opts =>
             {
                 // Include .NET namespace in the Swagger UI sections
-                opts.GroupActionsBy((s) =>
-                {
-                    var r = new Regex(@"Controllers.(.*?)Controller");
-                    var m = r.Match(s.ActionDescriptor.DisplayName);
-                    if (m.Success)
-                    {
-                        return m.Groups[1].Value;
-                    }
-                    return null;
-                });
+                opts.GroupActionsBy(groupActions);
 
                 if (!Configuration.GetOrFail("Api:Url").EndsWith("/")) {
                     throw new System.Exception("Configuration `Api.Url` must end with /");
@@ -194,6 +197,7 @@ namespace AspNetApiMonolithSample.Api
             services.AddScoped<IThingieStore, ThingieStore>();
             services.AddTransient<EmailService, EmailService>();
             services.Configure<EmailPlaceholders>(Configuration.GetSection("EmailPlaceholders"));
+            services.AddSingleton<GenSdk>();
             services.AddSingleton<IEmailSender>((s) =>
             {
                 return new EmailSender(s)
@@ -314,6 +318,16 @@ namespace AspNetApiMonolithSample.Api
                 .Build();
 
             var env = host.Services.GetService(typeof(IHostingEnvironment)) as IHostingEnvironment;
+
+            if (new List<string>(args).Contains("gensdk"))
+            {
+                host.Services.GetService<GenSdk>().Generate(new GenSdkOptions()
+                {
+                    GroupActionsBy = groupActions,
+                });
+                return;
+            }
+
             if (env.IsDevelopment())
             {
                 if (new List<string>(args).Contains("dev")) {
