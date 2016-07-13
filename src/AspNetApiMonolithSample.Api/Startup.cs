@@ -137,7 +137,7 @@ namespace AspNetApiMonolithSample.Api
                 opts.Cookies.ApplicationCookie.Events = new CookieAuthenticationEvents()
                 {
                     OnRedirectToLogin = redirectOnlyOpenId,
-                    OnRedirectToAccessDenied = redirectOnlyOpenId
+                    OnRedirectToAccessDenied = redirectOnlyOpenId,
                 };
                 opts.Cookies.ApplicationCookie.AccessDeniedPath = "/OpenId/Login";
                 opts.Cookies.ApplicationCookie.LoginPath = "/OpenId/Login";
@@ -239,6 +239,13 @@ namespace AspNetApiMonolithSample.Api
             // use JWT bearer authentication
             app.UseJwtBearerAuthentication(new JwtBearerOptions()
             {
+                Events = new JwtBearerEvents()
+                {
+                    OnAuthenticationFailed = async (s) =>
+                    {
+                        s.Exception = new NotAuhenticated();
+                    }
+                },
                 AutomaticAuthenticate = true,
                 AutomaticChallenge = true,
                 RequireHttpsMetadata = false,

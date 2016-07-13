@@ -13,19 +13,30 @@ namespace AspNetApiMonolithSample.Api.Mvc
         public T Data { get; set; }
     }
 
-    abstract public class ApiError : ApiError<object>
+    abstract public class ApiError : Exception
     {
+        public int? StatusCode { get; set; }
 
+        virtual public ObjectResult GetResult()
+        {
+            return new ObjectResult(new ErrorValue<object>()
+            {
+                Error = GetType().Name,
+                Data = null
+            })
+            {
+                StatusCode = StatusCode
+            };
+        }
     }
 
-    abstract public class ApiError<T> : Exception
+    abstract public class ApiError<T> : ApiError
         where 
             T : class, new()
     {
         public T JsonData { get; set; }
-        public int? StatusCode { get; set; }
 
-        public ObjectResult GetResult()
+        override public ObjectResult GetResult()
         {
             return new ObjectResult(new ErrorValue<T>()
             {
