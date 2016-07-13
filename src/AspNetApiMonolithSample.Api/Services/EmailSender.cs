@@ -61,10 +61,15 @@ namespace AspNetApiMonolithSample.Api.Services
                 });
                 await appDbContext.SaveChangesAsync();
             }
-                
-            StartProcessQueue();
+
+            await Task.Run(() =>
+            {
+                StartProcessQueue();
+            }).ConfigureAwait(false);
+            
         }
 
+        private bool _hasInQueue = false;
         private Task _processingQueue = Task.CompletedTask;
         private object _processingQueueLock = new object();
 
@@ -73,16 +78,35 @@ namespace AspNetApiMonolithSample.Api.Services
         /// </summary>
         private void StartProcessQueue()
         {
+            lock (_processingQueueLock)
+            {
+                if (_hasInQueue)
+                {
+                    return;
+                }
+                _hasInQueue = true;
+            }
             _processingQueue.ContinueWith(t1 =>
             {
-                lock (_processingQueueLock) { 
-                    _processingQueue = ProcessQueue().ContinueWith(t2 =>
-                    {
-                        var logger = _services.GetService<ILogger<EmailService>>();
-                        logger.LogError($"Unhandled error during processing email queue: {t2.Exception.Message}", t2.Exception);
-                        
-                    }, TaskContinuationOptions.OnlyOnFaulted);
+                lock (_processingQueueLock)
+                {
+                    _hasInQueue = true;
+                    _processingQueue = ProcessQueue()
+                        .ContinueWith(t2 =>
+                            {
+                                var logger = _services.GetService<ILogger<EmailService>>();
+                                logger.LogError($"Unhandled error during processing email queue: {t2.Exception.Message}", t2.Exception);
+
+                            }, TaskContinuationOptions.OnlyOnFaulted)
+                        .ContinueWith(t3 =>
+                            {
+                                lock (_processingQueueLock)
+                                {
+                                    _hasInQueue = false;
+                                }
+                            });
                 }
+                    
             });
         }
 
@@ -96,7 +120,7 @@ namespace AspNetApiMonolithSample.Api.Services
         /// </summary>
         private async Task ProcessQueue()
         {
-            Thread.Sleep(500); // Gather all emails inserted in last 500ms, and process them
+            await Task.Delay(5000).ConfigureAwait(false); // Gather all emails inserted in last 500ms, and process them
 
             var logger = _services.GetService<ILogger<EmailService>>();
             var appDbContextOpts = _services.GetService<DbContextOptions<AppDbContext>>();
