@@ -5,10 +5,10 @@ using AspNetApiMonolithSample.Api.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AspNetApiMonolithSample.Api.Controllers
+namespace AspNetApiMonolithSample.Api.Controllers.Frontend
 {
     [Authorize]
-    [Route("[controller]")]
+    [Route("Frontend/[controller]")]
     public class ThingiesController
     {
         private readonly IThingieStore thingies;

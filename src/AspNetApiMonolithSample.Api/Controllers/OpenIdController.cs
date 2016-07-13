@@ -329,18 +329,6 @@ namespace AspNetApiMonolithSample.Api.Controllers
             return Forbid(OpenIdConnectServerDefaults.AuthenticationScheme);
         }
 
-        // TODO: Change to POST or remove
-        [HttpGet("[action]")]
-        [Authorize(Policy = "COOKIES")]
-        public dynamic LoggedIn([RequestUser] User loggedInUser)
-        {
-            return new
-            {
-                Id = loggedInUser.Id,
-                Email = loggedInUser.Email
-            };
-        }
-
         private IActionResult RedirectToLogin(LoginErrors error, String returnUrl, String display = "")
         {
             return RedirectToAction(nameof(Login), new { error = error, returnUrl = returnUrl, display = display });
