@@ -12,7 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace AspNetApiMonolithSample.Api.Mvc
+namespace AspNetApiMonolithSample.Api.Swagger
 {
     internal static class SchemaExtension
     {
