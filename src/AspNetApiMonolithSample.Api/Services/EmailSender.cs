@@ -120,7 +120,7 @@ namespace AspNetApiMonolithSample.Api.Services
         /// </summary>
         private async Task ProcessQueue()
         {
-            await Task.Delay(5000).ConfigureAwait(false); // Gather all emails inserted in last 500ms, and process them
+            await Task.Delay(500).ConfigureAwait(false); // Gather all emails inserted in last 500ms, and process them
 
             var logger = _services.GetService<ILogger<EmailService>>();
             var appDbContextOpts = _services.GetService<DbContextOptions<AppDbContext>>();
