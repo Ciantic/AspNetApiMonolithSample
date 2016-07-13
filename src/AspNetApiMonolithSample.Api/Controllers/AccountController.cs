@@ -69,7 +69,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             }
             else
             {
-                throw new ValidationErrorResult(result.Errors.Select(e => e.Description).ToList()).Exception();
+                throw new ValidationError(result.Errors.Select(e => e.Description).ToList());
             }
         }
 

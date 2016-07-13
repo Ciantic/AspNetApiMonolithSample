@@ -1,26 +1,27 @@
 using System;
 using AspNetApiMonolithSample.Api.EntityFramework;
 using Microsoft.AspNetCore.Mvc.Filters;
+using System.Reflection;
 
 namespace AspNetApiMonolithSample.Api.Mvc
 {
-    public class ApiExceptionFilter : Attribute, IExceptionFilter
+    public class ApiErrorFilter : Attribute, IExceptionFilter
     {
         public void OnException(ExceptionContext context)
         {
-            if (context.Exception is ApiException)
+            if (typeof(ApiError<>).IsAssignableFrom(context.Exception.GetType()))
             {
-                context.Result = (context.Exception as ApiException).Result;
+                context.Result = (context.Exception as ApiError<object>).GetResult();
                 context.Exception = null;
             }
             else if (context.Exception is EntityNotFoundException)
             {
-                context.Result = new NotFoundResult();
+                context.Result = new NotFound().GetResult();
                 context.Exception = null;
             }
             else if (context.Exception is EntityListEmptyException)
             {
-                context.Result = new NotFoundResult();
+                context.Result = new NotFound().GetResult();
                 context.Exception = null;
             }
         }

@@ -80,8 +80,7 @@ namespace AspNetApiMonolithSample.Api
                 } else
                 {
                     ctx.Response.Redirect(ctx.RedirectUri);
-                }
-                
+                }   
             }
             return Task.FromResult(0);
         }
@@ -120,7 +119,7 @@ namespace AspNetApiMonolithSample.Api
             {
                 opts.Filters.Add(new ModelStateValidationFilter());
                 opts.Filters.Add(new NullValidationFilter());
-                opts.Filters.Add(new ApiExceptionFilter());
+                opts.Filters.Add(new ApiErrorFilter());
             })
                 .AddApiExplorer()
                 .AddAuthorization(opts => {

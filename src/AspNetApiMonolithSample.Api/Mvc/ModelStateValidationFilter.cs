@@ -9,7 +9,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
         {
             if (!context.ModelState.IsValid)
             {
-                context.Result = new ValidationErrorResult(context.ModelState);
+                context.Result = new ValidationError(context.ModelState).GetResult();
             }
         }
 
