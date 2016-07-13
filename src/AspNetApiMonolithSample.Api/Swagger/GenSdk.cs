@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Swashbuckle.Swagger.Model;
 using Swashbuckle.SwaggerGen.Generator;
 using System;
+using System.Reflection;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,6 +28,12 @@ namespace AspNetApiMonolithSample.Api.Swagger
             if (swaggerType == "integer")
             {
                 return "number";
+            } else if (swaggerType == "object")
+            {
+                return "{}";
+            } else if (swaggerType == "array")
+            {
+                return "any[]";
             }
             return swaggerType;
         }
@@ -34,27 +41,48 @@ namespace AspNetApiMonolithSample.Api.Swagger
         /// <summary>
         /// Generates typescript definition
         /// </summary>
-        public static string genTypescriptDefinition(this Schema schema, SchemaRegistry registry)
-        {
-            return registry.genTypescriptDefinition(schema);
-        }
-
-        /// <summary>
-        /// Generates typescript definition
-        /// </summary>
         public static string genTypescriptDefinition(this SchemaRegistry registry, Type target)
         {
+            /*
+            // TODO: This route would require to get interfaces recursively from type.BaseType's also
+            if (target.GetInterfaces().Contains(typeof(IDictionary<,>))) {
+                var dictionaryType = target.GetInterfaces().Where(t => t == typeof(IDictionary<,>)).First();
+                var kType = registry.genTypescriptDefinition(dictionaryType.GenericTypeArguments[0]);
+                var vType = registry.genTypescriptDefinition(dictionaryType.GenericTypeArguments[1]);
+                return $"{{ [k: {kType}]: {vType} }}";
+            }
+            */
+
+            if (target.IsArray && target.HasElementType)
+            {
+                var iType = registry.genTypescriptDefinition(target.GetElementType());
+                return $"{iType}[]";
+            }
+
+            if (target.IsConstructedGenericType && target.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                var iType = registry.genTypescriptDefinition(target.GenericTypeArguments[0]);
+                return $"{iType}[]";
+            }
+
+            if (target.IsConstructedGenericType && target.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+            {
+                var kType = registry.genTypescriptDefinition(target.GenericTypeArguments[0]);
+                var vType = registry.genTypescriptDefinition(target.GenericTypeArguments[1]);
+                return $"{{ [k: {kType}]: {vType} }}";
+            }
+
             return registry.genTypescriptDefinition(registry.GetOrRegister(target));
         }
 
         /// <summary>
         /// Generates typescript definition
         /// </summary>
-        public static string genTypescriptDefinition(this SchemaRegistry registry, Schema target)
+        private static string genTypescriptDefinition(this SchemaRegistry registry, Schema target)
         {
-            if (target.Type != null && target.Type != "object" && target.Properties == null)
+            if (target.Type == "array" && target.Items != null)
             {
-                return convertToTypescriptType(target.Type);
+                return convertToTypescriptType(target.Items.Type) + "[]";
             }
             else if (target.Type == "object" && target.Properties != null)
             {
@@ -76,7 +104,7 @@ namespace AspNetApiMonolithSample.Api.Swagger
                 }
             }
 
-            throw new Exception("what?");
+            return convertToTypescriptType(target.Type);
         }
     }
 
@@ -88,7 +116,7 @@ namespace AspNetApiMonolithSample.Api.Swagger
         public string Indent { get; set; } = "    ";
         public string ReturnTypeFormat { get; set; } = "Promise<{type}>";
         public string RequestFunctionFormat { get; set; } = "request(\"{relativePath}\", \"{method}\", {bodyParam})";
-        public string ApiOutputFormat { get; set; } = "export default = {apiObject};";
+        public string ApiOutputFormat { get; set; } = "export default {apiObject};";
         public string OutputPath { get; set; } = "Api.ts";
         
         public IEnumerable<string> Headers { get; set; } = new string[] {
@@ -296,7 +324,7 @@ namespace AspNetApiMonolithSample.Api.Swagger
                 var outputFormat = opts.GetReturnTypeFormat(outputValue);
                 var requestFormat = opts.GetRequestFunctionFormat(RelativePath, HttpMethod, InputBodyType != null ? "body" : "false");
 
-                return $"({string.Join(", ", inputParams)}): {outputFormat} =>\r\n{opts.Indent}{opts.Indent}{requestFormat}";
+                return indentAllButFirstLine($"({string.Join(", ", inputParams)}): {outputFormat} =>\r\n{opts.Indent}{requestFormat}");
             }
         }
 
