@@ -37,11 +37,13 @@ namespace AspNetApiMonolithSample.Api.Controllers
         private readonly OpenIddictUserManager<User> _userManager;
         private readonly UiBrandingHtml _brandingHtml;
         private readonly IOptions<Dictionary<string, OpenIddictApplication>> _officialApplications;
+        private readonly MvcJsonOptions _mvcJsonOptions;
 
         public OpenIdController(
             ILoggerFactory loggerFactory,
             IOptions<UiBrandingHtml> brandingHtml,
             IOptions<Dictionary<string, OpenIddictApplication>> officialApplications,
+            IOptions<MvcJsonOptions> mvcJsonOptions,
             OpenIddictApplicationManager<OpenIddictApplication> applicationManager,
             SignInManager<User> signInManager,
             OpenIddictUserManager<User> userManager)
@@ -52,6 +54,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             _userManager = userManager;
             _brandingHtml = brandingHtml.Value;
             _officialApplications = officialApplications;
+            _mvcJsonOptions = mvcJsonOptions.Value;
         }
 
         /// <summary>
@@ -89,6 +92,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             [FromQuery] string returnUrl = "",
             [FromQuery] string display = "")
         {
+            // TODO: Anti forgery token for login
             var data = JsonConvert.SerializeObject(new
             {
                 Display = display,
@@ -105,7 +109,8 @@ namespace AspNetApiMonolithSample.Api.Controllers
                     Password = "",
                     RememberMe = "",
                 }
-            });
+            }, _mvcJsonOptions.SerializerSettings);
+
             return new ContentResult()
             {
                 Content = $@"<!DOCTYPE html>
@@ -237,7 +242,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
                 FormActionDeny = Url.Action(nameof(Deny)),
                 ApplicationName = appName,
                 FormData = request.Parameters
-            });
+            }, _mvcJsonOptions.SerializerSettings);
 
             return new ContentResult()
             {

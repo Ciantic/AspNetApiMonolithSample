@@ -19,7 +19,8 @@ namespace AspNetApiMonolithSample.Api.Controllers
 
         public ErrorController(
             IOptions<UiBrandingHtml> brandingHtml, 
-            IOptions<MvcJsonOptions> mvcJsonOptions)
+            IOptions<MvcJsonOptions> mvcJsonOptions
+        )
         {
             _mvcJsonOptions = mvcJsonOptions.Value;
             _brandingHtml = brandingHtml.Value;
