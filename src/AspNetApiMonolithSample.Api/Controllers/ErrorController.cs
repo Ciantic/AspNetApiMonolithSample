@@ -65,7 +65,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
                 Content = $@"<!DOCTYPE html>
                     <html>
                     <head>
-                    <script>var OPENID_ERROR_PAGE = {data};</script>
+                    <script>var ERROR_PAGE = {data};</script>
                     {_brandingHtml?.Error}
                     </head>
                     <body>
