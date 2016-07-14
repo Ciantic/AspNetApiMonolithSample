@@ -56,7 +56,9 @@ namespace AspNetApiMonolithSample.Api.Mvc
     }
     
     public class ValidationError: ApiError<ValidationErrorData> {
-        public ValidationError(ModelStateDictionary modelState) {
+        public ValidationError(ModelStateDictionary modelState)
+        {
+            StatusCode = StatusCodes.Status400BadRequest;
             JsonData = new ValidationErrorData()
             {
                 Fields = modelState.ToDictionary(
@@ -68,6 +70,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
         
         public ValidationError(IEnumerable<String> messages)
         {
+            StatusCode = StatusCodes.Status400BadRequest;
             JsonData = new ValidationErrorData()
             {
                 Messages = messages.ToArray()
@@ -84,15 +87,23 @@ namespace AspNetApiMonolithSample.Api.Mvc
     public class NotAuthorized: ApiError
     {
         public NotAuthorized() {
+            StatusCode = StatusCodes.Status401Unauthorized;
+        }
+    }
+
+    public class Forbidden : ApiError
+    {
+        public Forbidden()
+        {
             StatusCode = StatusCodes.Status403Forbidden;
         }
     }
 
-    public class NotAuhenticated : ApiError
+    public class UndefinedError : ApiError
     {
-        public NotAuhenticated()
+        public UndefinedError()
         {
-            StatusCode = StatusCodes.Status401Unauthorized;
+            StatusCode = StatusCodes.Status400BadRequest;
         }
     }
 }

@@ -10,25 +10,35 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.AspNetCore.Mvc.Formatters.Json.Internal;
+using Microsoft.AspNetCore.Mvc.Internal;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using OpenIddict;
 using Swashbuckle.Swagger.Model;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace AspNetApiMonolithSample.Api
 {
-    public class OpenIdBrandingHtml
+    public class UiBrandingHtml
     {
         public string Login { get; set; } = "";
         public string Authorize { get; set; } = "";
@@ -80,9 +90,10 @@ namespace AspNetApiMonolithSample.Api
                 } else
                 {
                     ctx.Response.Redirect(ctx.RedirectUri);
-                }   
+                }
+                return Task.CompletedTask;
             }
-            return Task.FromResult(0);
+            return Task.CompletedTask;
         }
 
         public static string groupActions(ApiDescription s)
@@ -132,7 +143,7 @@ namespace AspNetApiMonolithSample.Api
                 .AddDataAnnotations()
                 .AddFormatterMappings()
                 .AddJsonFormatters();
-
+            
             services.AddIdentity<User, Role>(opts => {
                 opts.Cookies.ApplicationCookie.Events = new CookieAuthenticationEvents()
                 {
@@ -208,7 +219,7 @@ namespace AspNetApiMonolithSample.Api
             });
 
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
-            services.Configure<OpenIdBrandingHtml>(Configuration.GetSection("OpenIdBrandingHtml"));
+            services.Configure<UiBrandingHtml>(Configuration.GetSection("UiBrandingHtml"));
             services.Configure<FrontendUrls>(Configuration.GetSection("FrontendUrls"));
         }
 
@@ -223,6 +234,17 @@ namespace AspNetApiMonolithSample.Api
             }
 
             app.UseStaticFiles();
+
+            // use JWT bearer authentication
+            app.UseJwtBearerAuthentication(new JwtBearerOptions()
+            {
+                AutomaticAuthenticate = true,
+                AutomaticChallenge = true,
+                RequireHttpsMetadata = false,
+                Audience = Configuration.GetOrFail("Jwt:Audience"),
+                Authority = Configuration.GetOrFail("Jwt:Authority"),
+            });
+
             app.UseIdentity();
             
             if (env.IsDevelopment())
@@ -234,25 +256,9 @@ namespace AspNetApiMonolithSample.Api
                 });
             }
 
+            app.UseStatusCodePagesWithReExecute("/Error", "?status={0}");
+
             app.UseOpenIddict();
-
-            // use JWT bearer authentication
-            app.UseJwtBearerAuthentication(new JwtBearerOptions()
-            {
-                Events = new JwtBearerEvents()
-                {
-                    OnAuthenticationFailed = async (s) =>
-                    {
-                        s.Exception = new NotAuhenticated();
-                    }
-                },
-                AutomaticAuthenticate = true,
-                AutomaticChallenge = true,
-                RequireHttpsMetadata = false,
-                Audience = Configuration.GetOrFail("Jwt:Audience"),
-                Authority = Configuration.GetOrFail("Jwt:Authority"),
-            });
-
             app.UseMvc();
 
             app.UseSwagger("docs/{apiVersion}/definition.json");
@@ -268,7 +274,8 @@ namespace AspNetApiMonolithSample.Api
                     { "resource", Configuration.GetOrFail("Api:Url") }
                 }
             });
-            app.UseStatusCodePages();
+
+
             app.ApplicationServices.GetService<IInitDatabase>().InitAsync().Wait();
         }
 

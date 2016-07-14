@@ -22,7 +22,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
             var user = await _userManager.GetUserAsync(bindingContext.ActionContext.HttpContext.User);
             if (user == null)
             {
-                throw new NotAuhenticated();
+                throw new NotAuthorized();
             } else { 
                 bindingContext.Result = ModelBindingResult.Success(user);
             }

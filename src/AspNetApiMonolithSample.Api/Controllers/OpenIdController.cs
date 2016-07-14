@@ -35,14 +35,13 @@ namespace AspNetApiMonolithSample.Api.Controllers
         private readonly OpenIddictApplicationManager<OpenIddictApplication> _applicationManager;
         private readonly SignInManager<User> _signInManager;
         private readonly OpenIddictUserManager<User> _userManager;
-        private readonly OpenIdBrandingHtml _brandingHtml;
+        private readonly UiBrandingHtml _brandingHtml;
         private readonly IOptions<Dictionary<string, OpenIddictApplication>> _officialApplications;
 
         public OpenIdController(
             ILoggerFactory loggerFactory,
-            IOptions<OpenIdBrandingHtml> brandingHtml,
+            IOptions<UiBrandingHtml> brandingHtml,
             IOptions<Dictionary<string, OpenIddictApplication>> officialApplications,
-
             OpenIddictApplicationManager<OpenIddictApplication> applicationManager,
             SignInManager<User> signInManager,
             OpenIddictUserManager<User> userManager)
@@ -69,34 +68,9 @@ namespace AspNetApiMonolithSample.Api.Controllers
         // Fatal errors are such that are not recoverable, error must be shown, it's not possible to login
         public enum FatalErrors
         {
-            Undefined,
             UserNotFound,
-            RequestNull,
             InvalidClient,
             RedirectMissing,
-        }
-
-        [NonAction]
-        public IActionResult Error([FromQuery] FatalErrors error, [FromQuery, Required] string display = "") {
-            var data = JsonConvert.SerializeObject(new
-            {
-                Display = display,
-                Error = error.ToString(),
-            });
-            return new ContentResult()
-            {
-                StatusCode = 400,
-                Content = $@"<!DOCTYPE html>
-                    <html>
-                    <head>
-                    <script>var OPENID_ERROR_PAGE = {data};</script>
-                    {_brandingHtml?.Error}
-                    </head>
-                    <body>
-                    <p>ERROR: {error.ToString()}</p>
-                    ",
-                ContentType = "text/html; charset=utf8"
-            };
         }
 
         // Login errors are recoverable, new login attempt may work
@@ -176,7 +150,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
         {
             if (returnUrl.Length == 0)
             {
-                return Error(FatalErrors.RedirectMissing);
+                return RedirectToAction(nameof(ErrorController.Error), nameof(ErrorController), new { message = FatalErrors.RedirectMissing });
             }
 
             var user = await _userManager.FindByEmailAsync(model.Email);
@@ -234,7 +208,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             var application = await _applicationManager.FindByClientIdAsync(request.ClientId);
             if (application == null)
             {
-                return Error(FatalErrors.InvalidClient);
+                return RedirectToAction(nameof(ErrorController.Error), nameof(ErrorController), new { message = FatalErrors.InvalidClient });
             }
 
             // Check if the application is official (registered in settings) and
@@ -298,7 +272,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             if (user == null)
             {
                 await _signInManager.SignOutAsync();
-                return Error(FatalErrors.UserNotFound);
+                return RedirectToAction(nameof(ErrorController.Error), nameof(ErrorController), new { message = FatalErrors.UserNotFound });
             }
 
             // Create a new ClaimsIdentity containing the claims that
