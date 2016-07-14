@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Swashbuckle.Swagger.Model;
-using Swashbuckle.SwaggerGen.Generator;
 using System;
 using System.Reflection;
 using System.Collections.Generic;
@@ -12,101 +10,122 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json.Serialization;
 
-namespace AspNetApiMonolithSample.Api.Swagger
+namespace AspNetApiMonolithSample.Api.Mvc
 {
-    internal static class SchemaExtension
+    internal class TypescriptGenerator
     {
-        /// <summary>
-        /// Convert swagger type to TypeScript type
-        /// 
-        /// See the end of file: 
-        /// https://github.com/domaindrivendev/Ahoy/blob/master/src/Swashbuckle.SwaggerGen/Generator/SchemaRegistry.cs
-        /// </summary>
-        private static string convertToTypescriptType(string swaggerType)
+        internal class TypescriptType
         {
-            if (swaggerType == "integer")
-            {
-                return "number";
-            } else if (swaggerType == "object")
-            {
-                return "{}";
-            } else if (swaggerType == "array")
-            {
-                return "any[]";
-            }
-            return swaggerType;
+            public Type TheType { get; set; }
+            public string Definition { get; set; }
         }
 
-        /// <summary>
-        /// Generates typescript definition
-        /// </summary>
-        public static string genTypescriptDefinition(this SchemaRegistry registry, Type target)
+        private readonly Dictionary<Type, TypescriptType> _typescriptTypeList = new Dictionary<Type, TypescriptType>();
+        private readonly MvcJsonOptions _mvcJsonOpts;
+        private readonly IContractResolver _jsonContractResolver;
+
+        public TypescriptGenerator(
+            IOptions<MvcJsonOptions> mvcJsonOpts
+        )
         {
-            /*
-            // TODO: This route would require to get interfaces recursively from type.BaseType's also
-            if (target.GetInterfaces().Contains(typeof(IDictionary<,>))) {
-                var dictionaryType = target.GetInterfaces().Where(t => t == typeof(IDictionary<,>)).First();
-                var kType = registry.genTypescriptDefinition(dictionaryType.GenericTypeArguments[0]);
-                var vType = registry.genTypescriptDefinition(dictionaryType.GenericTypeArguments[1]);
-                return $"{{ [k: {kType}]: {vType} }}";
-            }
-            */
-
-            if (target.IsArray && target.HasElementType)
-            {
-                var iType = registry.genTypescriptDefinition(target.GetElementType());
-                return $"{iType}[]";
-            }
-
-            if (target.IsConstructedGenericType && target.GetGenericTypeDefinition() == typeof(List<>))
-            {
-                var iType = registry.genTypescriptDefinition(target.GenericTypeArguments[0]);
-                return $"{iType}[]";
-            }
-
-            if (target.IsConstructedGenericType && target.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            {
-                var kType = registry.genTypescriptDefinition(target.GenericTypeArguments[0]);
-                var vType = registry.genTypescriptDefinition(target.GenericTypeArguments[1]);
-                return $"{{ [k: {kType}]: {vType} }}";
-            }
-
-            return registry.genTypescriptDefinition(registry.GetOrRegister(target));
+            _jsonContractResolver = mvcJsonOpts.Value.SerializerSettings.ContractResolver ?? new DefaultContractResolver();
+            _mvcJsonOpts = mvcJsonOpts.Value;
         }
 
-        /// <summary>
-        /// Generates typescript definition
-        /// </summary>
-        private static string genTypescriptDefinition(this SchemaRegistry registry, Schema target)
+        public string Generate(Type type)
         {
-            if (target.Type == "array" && target.Items != null)
-            {
-                return convertToTypescriptType(target.Items.Type) + "[]";
-            }
-            else if (target.Type == "object" && target.Properties != null)
-            {
-                var subDefs = new List<string>();
-                foreach (var p in target.Properties)
-                {
-                    subDefs.Add($"\"{p.Key}\" : {registry.genTypescriptDefinition(p.Value)}");
-                }
+            TypescriptType tsType;
 
-                return "{" + string.Join(", ", subDefs) + "}";
-            }
-            else if (target.Ref != null)
+            if (_typescriptTypeList.ContainsKey(type))
             {
-                var regex = new Regex("#/definitions/(.*)");
-                var match = regex.Match(target.Ref);
-                if (match.Success)
+                tsType = _typescriptTypeList[type];
+            } else
+            {
+                tsType = new TypescriptType()
                 {
-                    return registry.genTypescriptDefinition(registry.Definitions[match.Groups[1].Value]);
+                    TheType = type,
+                    Definition = generateDefinition(type),
+                };
+                _typescriptTypeList.Add(type, tsType);
+            }
+
+            return tsType.Definition;
+        }
+
+        private string generateDefinition(Type target)
+        {
+            if (PrimitiveTypeMap.ContainsKey(target))
+            {
+                return PrimitiveTypeMap[target];
+            }
+            var jsonContract = _jsonContractResolver.ResolveContract(target);
+            
+            if (jsonContract is JsonPrimitiveContract)
+            {
+                var primitiveContract = (JsonPrimitiveContract)jsonContract;
+                var type = Nullable.GetUnderlyingType(primitiveContract.UnderlyingType) ?? primitiveContract.UnderlyingType;
+
+                // TODO: if (type.GetTypeInfo().IsEnum) ...
+
+                if (PrimitiveTypeMap.ContainsKey(type))
+                {
+                    return PrimitiveTypeMap[type];
                 }
             }
 
-            return convertToTypescriptType(target.Type);
+            if (jsonContract is JsonDictionaryContract) { 
+                var dictContract = (JsonDictionaryContract)jsonContract;
+                var kType = Generate(dictContract.DictionaryKeyType);
+                var vType = Generate(dictContract.DictionaryValueType);
+                return $"{{ [k: {kType}]: {vType} }}";
+            }
+
+            if (jsonContract is JsonArrayContract)
+            {
+                var arrayContract = (JsonArrayContract)jsonContract;
+                return $"{Generate(arrayContract.CollectionItemType)}[]";
+            }
+
+            if (jsonContract is JsonObjectContract)
+            {
+                var objectContract = (JsonObjectContract)jsonContract;
+                var propTypes = new List<string>();
+                foreach (var p in objectContract.Properties)
+                {
+                    propTypes.Add(p.PropertyName + " : " + Generate(p.PropertyType));
+                }
+                return $"{{ {string.Join(", ", propTypes)} }}";
+
+            }
+
+            return "any";
         }
+
+        private static readonly Dictionary<Type, string> PrimitiveTypeMap = new Dictionary<Type, string>
+        {
+            { typeof(string), "string" },
+            { typeof(short), "number" },
+            { typeof(ushort), "number" },
+            { typeof(int), "number" },
+            { typeof(uint), "number" },
+            { typeof(long), "number" },
+            { typeof(ulong), "number" },
+            { typeof(float), "number" },
+            { typeof(double), "number" },
+            { typeof(decimal), "number" },
+            { typeof(byte), "string" },
+            { typeof(sbyte), "string" },
+            { typeof(byte[]), "string" },
+            { typeof(sbyte[]), "string" },
+            { typeof(bool), "string" },
+            { typeof(DateTime), "string" },
+            { typeof(DateTimeOffset), "string" },
+            { typeof(Guid), "string" },
+        };
     }
+    
 
     public class GenSdkOptions
     {
@@ -114,11 +133,14 @@ namespace AspNetApiMonolithSample.Api.Swagger
             return s.GroupName;
         });
         public string Indent { get; set; } = "    ";
-        public string ReturnTypeFormat { get; set; } = "Promise<{type}>";
+        public string ReturnTypeFormat { get; set; } = "ApiPromise<{type}>";
         public string RequestFunctionFormat { get; set; } = "request(\"{relativePath}\", \"{method}\", {bodyParam})";
         public string ApiOutputFormat { get; set; } = "export default {apiObject};";
         public string OutputPath { get; set; } = "Api.ts";
-        
+        public string ApiPromiseBegin { get; set; } = "abstract class ApiPromise<T> extends Promise<T> {";
+        public string ApiPromiseErrorFormat { get; set; } = "abstract onError(errorCode: \"{errorName}\", cb: (data: {dataType}) => void);";
+        public string ApiPromiseEnd { get; set; } = "}";
+
         public IEnumerable<string> Headers { get; set; } = new string[] {
             "/* tslint:disable */",
             "// This file is generated from the API. Do not edit this file.",
@@ -128,6 +150,20 @@ namespace AspNetApiMonolithSample.Api.Swagger
             "import { request } from \"./request\"",
             "",
         };
+
+        public string GetApiPromiseErrorFormat(string errorName, string dataType)
+        {
+            var res = new StringBuilder(ApiPromiseErrorFormat);
+            foreach (var kv in new Dictionary<string, string>()
+            {
+                { "{errorName}", errorName },
+                { "{dataType}", dataType },
+            })
+            {
+                res.Replace(kv.Key, kv.Value);
+            }
+            return res.ToString();
+        }
 
         public string GetApiOutputFormat(string apiObject)
         {
@@ -179,6 +215,8 @@ namespace AspNetApiMonolithSample.Api.Swagger
 
         private readonly ILogger<GenSdk> _logger;
 
+        private readonly TypescriptGenerator _tsGen;
+
         public GenSdk(
             IApiDescriptionGroupCollectionProvider apiDescriptionsProvider, 
             IOptions<MvcJsonOptions> mvcJsonOpts,
@@ -187,11 +225,11 @@ namespace AspNetApiMonolithSample.Api.Swagger
             _logger = logger;
             _apiDescriptionsProvider = apiDescriptionsProvider;
             _jsonSerializerSettings = mvcJsonOpts.Value.SerializerSettings;
+            _tsGen = new TypescriptGenerator(mvcJsonOpts);
         }
 
         public void Generate(GenSdkOptions opts)
         {
-            var registry = new SchemaRegistry(this._jsonSerializerSettings);
             var allDefinitions = new ObjectItem() as IItem;
 
             foreach (var grp in _apiDescriptionsProvider.ApiDescriptionGroups.Items)
@@ -218,14 +256,16 @@ namespace AspNetApiMonolithSample.Api.Swagger
                             _logger.LogWarning($"Skipping SDK generation for {act.ActionDescriptor.DisplayName}. Only [FromBody] parameters are supported.");
                             continue;
                         }
-                        registry.GetOrRegister(p.Type);
+                        _tsGen.Generate(p.Type);
+                        // registry.GetOrRegister(p.Type);
                         apiFunction.InputBodyType = p.Type;
                     }
 
                     // Get result type
                     if (act.SupportedResponseTypes.Count >= 1) { 
                         var responseType = act.SupportedResponseTypes.First();
-                        registry.GetOrRegister(responseType.Type);
+                        _tsGen.Generate(responseType.Type);
+                        // registry.GetOrRegister(responseType.Type);
                         apiFunction.ResultType = responseType.Type;
                     }
 
@@ -260,12 +300,15 @@ namespace AspNetApiMonolithSample.Api.Swagger
                     
                 }
             }
-            var apiObject = allDefinitions.GenTypescript(opts, registry);
+
+            // var apiObject = allDefinitions.GenTypescript(opts, registry);
+            var apiObject = allDefinitions.GenTypescript(opts, _tsGen);
             var output = new List<string>();
             output.AddRange(opts.Headers);
             output.AddRange(opts.Imports);
+            output.Add(getApiErrors(opts, _tsGen));
             output.Add(opts.GetApiOutputFormat(apiObject));
-
+            
             // Write only if changed or does not exist
             var outputText = string.Join("\r\n", output);
             var write = true;
@@ -279,6 +322,60 @@ namespace AspNetApiMonolithSample.Api.Swagger
             {
                 File.WriteAllText(opts.OutputPath, outputText);
             }
+        }
+
+        private class ErrorDefinition
+        {
+            public string Error { get; set; } = "";
+            public Type DataType { get; set; } = null;
+        }
+
+        private static string getApiErrors(GenSdkOptions opts, TypescriptGenerator tsGen)
+        {
+            
+            IEnumerable<Type> apiErrors = typeof(ApiError).GetTypeInfo().Assembly
+                .GetTypes()
+                .Where(t => typeof(ApiError).IsAssignableFrom(t) && !t.GetTypeInfo().IsAbstract)
+                .Select(t => t);
+
+            var errorDefinitions = new List<ErrorDefinition>();
+
+            foreach (var t in apiErrors)
+            {
+                var bt = t.GetTypeInfo().BaseType;
+
+                if (bt == typeof(ApiError))
+                {
+                    errorDefinitions.Add(new ErrorDefinition()
+                    {
+                        Error = t.Name,
+                        DataType = null
+                    });
+                    continue;
+                }
+                else if (bt.IsConstructedGenericType && 
+                    bt.GetTypeInfo().GetGenericTypeDefinition() == typeof(ApiError<>))
+                {
+                    var dataType = bt.GenericTypeArguments[0];
+                    tsGen.Generate(dataType);
+                    errorDefinitions.Add(new ErrorDefinition()
+                    {
+                        Error = t.Name,
+                        DataType = dataType
+                    });
+                    continue;
+                }
+            }
+
+            var output = opts.ApiPromiseBegin;
+            var errs = new List<string>();
+
+            foreach (var def in errorDefinitions)
+            {
+                errs.Add(opts.GetApiPromiseErrorFormat(def.Error, def.DataType != null ? tsGen.Generate(def.DataType) : "null"));
+            }
+
+            return indentAllButFirstLine(output + "\r\n" + string.Join("\r\n", errs)) + "\r\n" + opts.ApiPromiseEnd;
         }
 
         private static string indentAllButFirstLine(string text, string indent = "    ")
@@ -298,7 +395,8 @@ namespace AspNetApiMonolithSample.Api.Swagger
 
         private interface IItem
         {
-            string GenTypescript(GenSdkOptions opts, SchemaRegistry registry);
+            string GenTypescript(GenSdkOptions opts, TypescriptGenerator tsGen);
+
             IDictionary<string, IItem> Children { get; set; }
         }
 
@@ -309,17 +407,17 @@ namespace AspNetApiMonolithSample.Api.Swagger
             public Type InputBodyType { get; set; }
             public Type ResultType { get; set; }
             public IDictionary<string, IItem> Children { get; set; } = new Dictionary<string, IItem>();
-            public string GenTypescript(GenSdkOptions opts, SchemaRegistry registry)
+            public string GenTypescript(GenSdkOptions opts, TypescriptGenerator tsGen)
             {
                 var inputParams = new List<string>();
                 var outputValue = "void";
                 if (InputBodyType != null)
                 {
-                    inputParams.Add($"body: {registry.genTypescriptDefinition(InputBodyType)}");
+                    inputParams.Add($"body: {tsGen.Generate(InputBodyType)}");
                 }
                 if (ResultType != null)
                 {
-                    outputValue = registry.genTypescriptDefinition(ResultType);
+                    outputValue = tsGen.Generate(ResultType);
                 }
                 var outputFormat = opts.GetReturnTypeFormat(outputValue);
                 var requestFormat = opts.GetRequestFunctionFormat(RelativePath, HttpMethod, InputBodyType != null ? "body" : "false");
@@ -334,12 +432,12 @@ namespace AspNetApiMonolithSample.Api.Swagger
         private class ObjectItem : IItem
         {
             public IDictionary<string, IItem> Children { get; set; } = new Dictionary<string, IItem>();
-            public string GenTypescript(GenSdkOptions opts, SchemaRegistry registry)
+            public string GenTypescript(GenSdkOptions opts, TypescriptGenerator tsGen)
             {
                 var parentItems = new List<string>();
                 foreach (var p in Children)
                 {
-                    var item = p.Value.GenTypescript(opts, registry);
+                    var item = p.Value.GenTypescript(opts, tsGen);
                     if (p.Value is ObjectItem)
                     {
                         item = indentAllButFirstLine(item, opts.Indent);
