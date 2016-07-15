@@ -403,7 +403,7 @@ namespace AspNetApiMonolithSample.Api
 
                 if (wrote)
                 {
-                    Console.WriteLine("Generation done, file API.ts was written.");
+                    Console.WriteLine("Generation done, file Api.ts was written.");
                 } else
                 {
                     Console.WriteLine("Generation done, no changes.");

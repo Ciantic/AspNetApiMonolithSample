@@ -29,6 +29,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
     /// OpenId specific actions, not to be used in API calls
     /// </summary>
     [Route("[controller]")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class OpenIdController : ControllerBase
     {
         private readonly ILogger _logger;

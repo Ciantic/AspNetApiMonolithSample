@@ -27,16 +27,6 @@ export const Api = {
         LogoutAllApplications : (): ApiPromise<string> =>
             request("Account/LogoutAllApplications", "POST", false)
     },
-    OpenId : {
-        Logout : (): ApiPromise<void> =>
-            request("OpenId/Logout", "GET", false),
-        Authorize : (): ApiPromise<void> =>
-            request("OpenId/Authorize", "POST", false),
-        Accept : (): ApiPromise<void> =>
-            request("OpenId/Authorize/Accept", "POST", false),
-        Deny : (): ApiPromise<void> =>
-            request("OpenId/Authorize/Deny", "POST", false)
-    },
     Frontend : {
         Thingies : {
             GetByName : (body: { name : string }): ApiPromise<{ id : number, name : string }> =>

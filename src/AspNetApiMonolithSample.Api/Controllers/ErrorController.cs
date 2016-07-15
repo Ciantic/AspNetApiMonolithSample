@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 namespace AspNetApiMonolithSample.Api.Controllers
 {
     [Route("[controller]")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class ErrorController : ControllerBase
     {
         private readonly MvcJsonOptions _mvcJsonOptions;
