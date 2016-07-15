@@ -14,6 +14,9 @@ using System.Text.RegularExpressions;
 
 namespace AspNetApiMonolithSample.Api.Mvc
 {
+    /// <summary>
+    /// Typescript structural type definition generator.
+    /// </summary>
     internal class TypescriptGenerator
     {
         internal class TypescriptType
@@ -23,15 +26,13 @@ namespace AspNetApiMonolithSample.Api.Mvc
         }
 
         private readonly Dictionary<Type, TypescriptType> _typescriptTypeList = new Dictionary<Type, TypescriptType>();
-        private readonly MvcJsonOptions _mvcJsonOpts;
         private readonly IContractResolver _jsonContractResolver;
 
         public TypescriptGenerator(
-            IOptions<MvcJsonOptions> mvcJsonOpts
+            IContractResolver jsonContractResolver
         )
         {
-            _jsonContractResolver = mvcJsonOpts.Value.SerializerSettings.ContractResolver ?? new DefaultContractResolver();
-            _mvcJsonOpts = mvcJsonOpts.Value;
+            _jsonContractResolver = jsonContractResolver;
         }
 
         public string Generate(Type type)
@@ -268,7 +269,8 @@ namespace AspNetApiMonolithSample.Api.Mvc
             _logger = logger;
             _apiDescriptionsProvider = apiDescriptionsProvider;
             _jsonSerializerSettings = mvcJsonOpts.Value.SerializerSettings;
-            _tsGen = new TypescriptGenerator(mvcJsonOpts);
+            _tsGen = new TypescriptGenerator(mvcJsonOpts.Value?.SerializerSettings?.ContractResolver 
+                ?? new DefaultContractResolver());
         }
 
         /// <summary>
