@@ -10,15 +10,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.AspNetCore.Mvc.Formatters.Json.Internal;
-using Microsoft.AspNetCore.Mvc.Internal;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -26,40 +20,79 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using OpenIddict;
 using Swashbuckle.Swagger.Model;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace AspNetApiMonolithSample.Api
 {
+    /// <summary>
+    /// Snippets of HTML to inject to the various pages, purpose is to provide branding
+    /// through external snippets of HTML/CSS/JavaScript instead writing it in the API.
+    /// </summary>
     public class UiBrandingHtml
     {
+        /// <summary>
+        /// Login page
+        /// </summary>
         public string Login { get; set; } = "";
+
+        /// <summary>
+        /// OpenId authorize form (Accept or Deny)
+        /// </summary>
         public string Authorize { get; set; } = "";
+
+        /// <summary>
+        /// Generic error page, e.g. 404
+        /// </summary>
         public string Error { get; set; } = "";
+
+        /// <summary>
+        /// Two Factor authentication form
+        /// </summary>
         public string TwoFactor { get; set; } = "";
     }
 
+    /// <summary>
+    /// Front end urls which user is redirected to deal with various parts of the 
+    /// application.
+    /// </summary>
     public class FrontendUrls
     {
+        /// <summary>
+        /// When user resets their password they will be emailed this link to reset the password
+        /// </summary>
         public string ResetPassword { get; set; } = "";
+
+        /// <summary>
+        /// When user registers they are emailed this confirmation link
+        /// </summary>
         public string RegisterConfirmEmail { get; set; } = "";
     }
     
+    /// <summary>
+    /// Startup class for Asp Net Core
+    /// </summary>
     public class Startup
     {
+        /// <summary>
+        /// Development time Sqlite connection
+        /// </summary>
         private SqliteConnection inMemorySqliteConnection;
 
         private readonly IConfigurationRoot Configuration;
 
         private readonly IHostingEnvironment env;
 
+        /// <summary>
+        /// Create a startup class, never created manually. This is initiated by UseStartup 
+        /// of the WebHostBuilder.
+        /// </summary>
+        /// <param name="env"></param>
         public Startup(IHostingEnvironment env)
         {
             this.env = env;
@@ -96,6 +129,12 @@ namespace AspNetApiMonolithSample.Api
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Groups actions in Swagger UI and in generated SDK e.g.
+        /// 
+        /// "SomeApp.Controllers.HomeController" becomes "Home"
+        /// "SomeApp.Controllers.Something.OtherController" becomes "Something.Other"
+        /// </summary>
         public static string groupActions(ApiDescription s)
         { 
             var r = new Regex(@"Controllers.(.*?)Controller");
@@ -107,11 +146,14 @@ namespace AspNetApiMonolithSample.Api
             return null;
         }
 
+        /// <summary>
+        /// Asp Net Core's dependency injection configuration
+        /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
-            // Ordering matters, Identity first, then MvcCore and then Authorization
             services.AddCors();
 
+            // Add database in the application
             services.AddDbContext<AppDbContext>(options =>
             {
                 if (env.IsDevelopment())
@@ -126,6 +168,7 @@ namespace AspNetApiMonolithSample.Api
                 }
             });
 
+            // Register MVC specific services, such as JSON, Authorization, ...
             services.AddMvcCore(opts =>
             {
                 opts.Filters.Add(new ModelStateValidationFilter());
@@ -191,19 +234,11 @@ namespace AspNetApiMonolithSample.Api
                 });
             });
 
-            if (env.IsDevelopment())
-            {
-                services.AddTransient<IInitDatabase, AppDbInitDev>();
-            }
-            else
-            {
-                services.AddTransient<IInitDatabase, AppDbInitProd>();
-            }
-
+            // Stores and repositories
             services.AddScoped<IThingieStore, ThingieStore>();
+
             services.AddTransient<EmailService, EmailService>();
             services.Configure<EmailPlaceholders>(Configuration.GetSection("EmailPlaceholders"));
-            services.AddSingleton<GenSdk>();
             services.AddSingleton<IEmailSender>((s) =>
             {
                 return new EmailSender(s)
@@ -221,8 +256,20 @@ namespace AspNetApiMonolithSample.Api
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
             services.Configure<UiBrandingHtml>(Configuration.GetSection("UiBrandingHtml"));
             services.Configure<FrontendUrls>(Configuration.GetSection("FrontendUrls"));
+
+            if (env.IsDevelopment())
+            {
+                services.AddTransient<IInitDatabase, AppDbInitDev>();
+            }
+            else
+            {
+                services.AddTransient<IInitDatabase, AppDbInitProd>();
+            }
         }
 
+        /// <summary>
+        /// Asp Net Core's application configuration
+        /// </summary>
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
             if (env.IsDevelopment())
@@ -317,6 +364,21 @@ namespace AspNetApiMonolithSample.Api
             }
         }
 
+        /// <summary>
+        /// Main entry point of the application
+        /// </summary>
+        /// <param name="args">
+        ///     <list type="bullet">
+        ///         <item>
+        ///             <term>gensdk</term>
+        ///             <description>Will output a API.ts SDK for TypeScript.</description>
+        ///         </item>
+        ///         <item>
+        ///             <term>dev</term>
+        ///             <description>When in Development environment will start additionally interactive console.</description>
+        ///         </item>
+        ///     </list>
+        /// </param>
         public static void Main(string[] args)
         {
             var host = new WebHostBuilder()
@@ -330,10 +392,22 @@ namespace AspNetApiMonolithSample.Api
 
             if (new List<string>(args).Contains("gensdk"))
             {
-                host.Services.GetService<GenSdk>().Generate(new GenSdkOptions()
+                Console.WriteLine("Generating the SDK...");
+                var mvcOptions = host.Services.GetService<IOptions<MvcJsonOptions>>();
+                var apiProvider = host.Services.GetService<IApiDescriptionGroupCollectionProvider>();
+                var logger = host.Services.GetService<Logger<GenSdk>>();
+                var wrote = new GenSdk(apiProvider, mvcOptions, logger).Generate(new GenSdkOptions()
                 {
                     GroupActionsBy = groupActions,
                 });
+
+                if (wrote)
+                {
+                    Console.WriteLine("Generation done, file API.ts was written.");
+                } else
+                {
+                    Console.WriteLine("Generation done, no changes.");
+                }
                 return;
             }
 
