@@ -31,8 +31,20 @@ using System.Threading.Tasks;
 namespace AspNetApiMonolithSample.Api
 {
     /// <summary>
+    /// Cross origin settings
+    /// 
+    /// Setting in the appsettings.json
+    /// </summary>
+    public class Cors
+    {
+        public string[] Origins { get; set; } = new string[] { };
+    }
+
+    /// <summary>
     /// Snippets of HTML to inject to the various pages, purpose is to provide branding
     /// through external snippets of HTML/CSS/JavaScript instead writing it in the API.
+    /// 
+    /// Setting in the appsettings.json
     /// </summary>
     public class UiBrandingHtml
     {
@@ -60,6 +72,8 @@ namespace AspNetApiMonolithSample.Api
     /// <summary>
     /// Front end urls which user is redirected to deal with various parts of the 
     /// application.
+    /// 
+    /// Setting in the appsettings.json
     /// </summary>
     public class FrontendUrls
     {
@@ -254,6 +268,7 @@ namespace AspNetApiMonolithSample.Api
             });
 
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
+            services.Configure<Cors>(Configuration.GetSection("Cors"));
             services.Configure<UiBrandingHtml>(Configuration.GetSection("UiBrandingHtml"));
             services.Configure<FrontendUrls>(Configuration.GetSection("FrontendUrls"));
 
@@ -272,6 +287,7 @@ namespace AspNetApiMonolithSample.Api
         /// </summary>
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
+            // Logger
             if (env.IsDevelopment())
             {
                 loggerFactory.AddConsole(LogLevel.Debug);
@@ -280,7 +296,25 @@ namespace AspNetApiMonolithSample.Api
                 loggerFactory.AddConsole(LogLevel.Warning);
             }
 
+            // Uses static files, for now only Swagger need these
             app.UseStaticFiles();
+
+
+            // Cross origin request settings
+            app.UseCors(builder => {
+                // In development, allow all requests regardless of origin
+                if (env.IsDevelopment())
+                {
+                    builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()
+                        .WithExposedHeaders("WwW-Authenticate"); // For JWT Bearer
+                }
+                else
+                {
+                    var cors = app.ApplicationServices.GetService<IOptions<Cors>>().Value;
+                    builder.WithOrigins(cors.Origins).AllowAnyMethod().AllowAnyHeader()
+                        .WithExposedHeaders("WwW-Authenticate"); // For JWT Bearer
+                }
+            });
 
             // use JWT bearer authentication
             app.UseJwtBearerAuthentication(new JwtBearerOptions()
@@ -297,10 +331,6 @@ namespace AspNetApiMonolithSample.Api
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseCors(builder =>
-                {
-                    builder.AllowAnyOrigin();
-                });
             }
 
             app.UseStatusCodePagesWithReExecute("/Error", "?status={0}");
