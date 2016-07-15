@@ -4,7 +4,7 @@
 
 import { request } from "./request";
 
-interface ApiPromise<T> extends PromiseLike<T> {
+export interface ApiPromise<T> extends PromiseLike<T> {
     onError(errorCode: "ValidationError", cb: (data: { fields : { [k: string]: string[] }, messages : string[] }) => void);
     onError(errorCode: "NotFound", cb: (data: null) => void);
     onError(errorCode: "NotAuthorized", cb: (data: null) => void);
@@ -13,29 +13,29 @@ interface ApiPromise<T> extends PromiseLike<T> {
 }
 export const Api = {
     Account : {
-        Register : (body: { email : string, password : string }): ApiPromise<string> =>
-            request("Account/Register", "POST", body),
-        LoggedIn : (): ApiPromise<{ id : string, email : string }> =>
-            request("Account/LoggedIn", "POST", false),
-        ChangePassword : (body: { currentPassword : string, newPassword : string }): ApiPromise<string> =>
-            request("Account/ChangePassword", "POST", body),
-        ResetPassword : (body: { email : string, code : string, newPassword : string }): ApiPromise<string> =>
-            request("Account/ResetPassword", "POST", body),
-        ForgotPassword : (body: { email : string }): ApiPromise<string> =>
-            request("Account/ForgotPassword", "POST", body),
-        ConfirmEmail : (body: { email : string, code : string }): ApiPromise<string> =>
-            request("Account/ConfirmEmail", "POST", body),
-        LogoutAllApplications : (): ApiPromise<string> =>
-            request("Account/LogoutAllApplications", "POST", false)
+        Register : (body: { email : string, password : string }) =>
+            request<ApiPromise<string>>("Account/Register", "POST", body),
+        LoggedIn : () =>
+            request<ApiPromise<{ id : string, email : string }>>("Account/LoggedIn", "POST", null),
+        ChangePassword : (body: { currentPassword : string, newPassword : string }) =>
+            request<ApiPromise<string>>("Account/ChangePassword", "POST", body),
+        ResetPassword : (body: { email : string, code : string, newPassword : string }) =>
+            request<ApiPromise<string>>("Account/ResetPassword", "POST", body),
+        ForgotPassword : (body: { email : string }) =>
+            request<ApiPromise<string>>("Account/ForgotPassword", "POST", body),
+        ConfirmEmail : (body: { email : string, code : string }) =>
+            request<ApiPromise<string>>("Account/ConfirmEmail", "POST", body),
+        LogoutAllApplications : () =>
+            request<ApiPromise<string>>("Account/LogoutAllApplications", "POST", null)
     },
     Frontend : {
         Thingies : {
-            GetByName : (body: { name : string }): ApiPromise<{ id : number, name : string }> =>
-                request("Frontend/Thingies/GetByName", "POST", body),
-            GetById : (body: { id : number }): ApiPromise<{ id : number, name : string }> =>
-                request("Frontend/Thingies/GetById", "POST", body),
-            Store : (body: { thingie : { id : number, name : string } }): ApiPromise<{ id : number, name : string }> =>
-                request("Frontend/Thingies/Store", "POST", body)
+            GetByName : (body: { name : string }) =>
+                request<ApiPromise<{ id : number, name : string }>>("Frontend/Thingies/GetByName", "POST", body),
+            GetById : (body: { id : number }) =>
+                request<ApiPromise<{ id : number, name : string }>>("Frontend/Thingies/GetById", "POST", body),
+            Store : (body: { thingie : { id : number, name : string } }) =>
+                request<ApiPromise<{ id : number, name : string }>>("Frontend/Thingies/Store", "POST", body)
         }
     }
 };

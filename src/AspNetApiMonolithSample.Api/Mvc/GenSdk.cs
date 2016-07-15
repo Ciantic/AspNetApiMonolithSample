@@ -139,9 +139,9 @@ namespace AspNetApiMonolithSample.Api.Mvc
         public string OutputFile { get; set; } = "Api.ts";
         public string ApiRootFormat { get; set; } = "export const Api = {apiRoot};";
         public string ApiReturnTypeFormat { get; set; } = "ApiPromise<{type}>";
-        public string ApiRequestFunctionFormat { get; set; } = "request(\"{relativePath}\", \"{method}\", {bodyParam})";
-        public string ApiFunctionFormat { get; set; } = "({inputParams}): {resultType} =>\r\n{indent}{requestFunction}";
-        public string ApiPromiseFormat { get; set; } = "interface ApiPromise<T> extends PromiseLike<T> {\r\n{indent}{promiseErrors}\r\n}";
+        public string ApiRequestFunctionFormat { get; set; } = "request<{resultType}>(\"{relativePath}\", \"{method}\", {bodyParam})";
+        public string ApiFunctionFormat { get; set; } = "({inputParams}) =>\r\n{indent}{requestFunction}";
+        public string ApiPromiseFormat { get; set; } = "export interface ApiPromise<T> extends PromiseLike<T> {\r\n{indent}{promiseErrors}\r\n}";
         public string ApiPromiseErrorFormat { get; set; } = "onError(errorCode: \"{errorName}\", cb: (data: {dataType}) => void);";
 
         public IEnumerable<string> Headers { get; set; } = new string[] {
@@ -231,7 +231,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
             return res.ToString();
         }
 
-        public string GetApiRequestFunctionFormat(string relativePath, string method, string bodyParam)
+        public string GetApiRequestFunctionFormat(string relativePath, string method, string bodyParam, string resultType)
         {
             var res = new StringBuilder(ApiRequestFunctionFormat);
             foreach (var kv in new Dictionary<string, string>()
@@ -239,6 +239,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
                 { "{indent}", Indent },
                 { "{relativePath}", relativePath },
                 { "{method}", method },
+                { "{resultType}", resultType },
                 { "{bodyParam}", bodyParam },
             })
             {
@@ -475,7 +476,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
                     outputValue = tsGen.Generate(ResultType);
                 }
                 var resultType = opts.GetApiReturnTypeFormat(outputValue);
-                var requestFunction = opts.GetApiRequestFunctionFormat(RelativePath, HttpMethod, InputBodyType != null ? "body" : "false");
+                var requestFunction = opts.GetApiRequestFunctionFormat(RelativePath, HttpMethod, InputBodyType != null ? "body" : "null", resultType);
 
                 return indentAllButFirstLine(opts.GetApiFunctionFormat(string.Join(", ", inputParams), resultType, requestFunction));
                 // return indentAllButFirstLine($"({string.Join(", ", inputParams)}): {outputFormat} =>\r\n{opts.Indent}{requestFormat}");

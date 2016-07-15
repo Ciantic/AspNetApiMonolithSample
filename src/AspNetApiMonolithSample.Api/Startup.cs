@@ -381,6 +381,7 @@ namespace AspNetApiMonolithSample.Api
         /// </param>
         public static void Main(string[] args)
         {
+            var listArgs = new List<string>(args);
             var host = new WebHostBuilder()
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseIISIntegration()
@@ -390,7 +391,7 @@ namespace AspNetApiMonolithSample.Api
 
             var env = host.Services.GetService(typeof(IHostingEnvironment)) as IHostingEnvironment;
 
-            if (new List<string>(args).Contains("gensdk"))
+            if (listArgs.Contains("gensdk"))
             {
                 Console.WriteLine("Generating the SDK...");
                 var mvcOptions = host.Services.GetService<IOptions<MvcJsonOptions>>();
@@ -413,7 +414,7 @@ namespace AspNetApiMonolithSample.Api
 
             if (env.IsDevelopment())
             {
-                if (new List<string>(args).Contains("dev")) {
+                if (listArgs.Contains("dev")) {
                     Task.Run(() =>
                     {
                         DevelopmentInteractive(host.Services).Wait();
