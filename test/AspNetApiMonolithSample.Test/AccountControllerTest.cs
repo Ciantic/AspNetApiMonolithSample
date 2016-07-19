@@ -1,4 +1,4 @@
-using AspNetApiMonolithSample.Controllers;
+using AspNetApiMonolithSample.Api.Controllers;
 using Xunit;
 
 namespace AspNetApiMonolithSample.Test
