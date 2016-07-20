@@ -8,7 +8,7 @@
 import { request, BasePromise, BaseErrors } from "./request";
 
 export interface ApiErrors<T> {
-    onError(errorCode: "ValidationError", cb: (data: { fields : { [k: string]: string[] }, messages : string[] }) => void): this & BaseErrors<T> & BasePromise<T>;
+    onError(errorCode: "ValidationError", cb: (data: { fields : { [k: string]: { code : string, message : string, data : {  } }[] }, general : { code : string, message : string, data : {  } }[] }) => void): this & BaseErrors<T> & BasePromise<T>;
     onError(errorCode: "NotFound", cb: (data: null) => void): this & BaseErrors<T> & BasePromise<T>;
     onError(errorCode: "NotAuthorized", cb: (data: null) => void): this & BaseErrors<T> & BasePromise<T>;
     onError(errorCode: "Forbidden", cb: (data: null) => void): this & BaseErrors<T> & BasePromise<T>;

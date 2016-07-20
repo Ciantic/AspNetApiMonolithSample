@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System.Text.RegularExpressions;
 
 namespace AspNetApiMonolithSample.Api.Mvc
 {
@@ -49,21 +50,35 @@ namespace AspNetApiMonolithSample.Api.Mvc
         }
     }
 
+    // Validation structure closely follows Django validation logic, having unique code 
+    // (not always provided unfortunately, e.g. on data annotations) allows to overwrite 
+    // the message in the UI logic
+    public class ValidationErrorMessage
+    {
+        public string Code { get; set; } = "";    // E.g. "MinLength", or "Required"
+        public string Message { get; set; } = ""; // E.g. "This field is required"
+        public object Data { get; set; } = "";    // E.g. { min: 5, max: 3 }
+    }
+
     public class ValidationErrorData
     {
-        public Dictionary<string, string[]> Fields { get; set; }
-        public string[] Messages { get; set; }
+        public Dictionary<string, ValidationErrorMessage[]> Fields { get; set; } = new Dictionary<string, ValidationErrorMessage[]>();
+        public ValidationErrorMessage[] General { get; set; } = new ValidationErrorMessage[] { };
     }
     
     public class ValidationError: ApiError<ValidationErrorData> {
+        private static Regex replaceBody = new Regex(@"^([^.]+?)\.");
+         
         public ValidationError(ModelStateDictionary modelState)
         {
             StatusCode = StatusCodes.Status400BadRequest;
             JsonData = new ValidationErrorData()
             {
                 Fields = modelState.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    kvp => replaceBody.Replace(kvp.Key, ""),
+                    kvp => kvp.Value.Errors.Select(e => new ValidationErrorMessage() {
+                        Message = e.ErrorMessage
+                    }).ToArray()
                 )
             };
         }
@@ -73,7 +88,19 @@ namespace AspNetApiMonolithSample.Api.Mvc
             StatusCode = StatusCodes.Status400BadRequest;
             JsonData = new ValidationErrorData()
             {
-                Messages = messages.ToArray()
+                General = messages.Select(t => new ValidationErrorMessage()
+                {
+                    Message = t
+                }).ToArray()
+            };
+        }
+
+        public ValidationError(IEnumerable<ValidationErrorMessage> general)
+        {
+            StatusCode = StatusCodes.Status400BadRequest;
+            JsonData = new ValidationErrorData()
+            {
+                General = general.ToArray()
             };
         }
     }

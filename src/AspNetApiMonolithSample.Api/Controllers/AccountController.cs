@@ -51,7 +51,6 @@ namespace AspNetApiMonolithSample.Api.Controllers
             public string Email { get; set; } = "";
 
             [Required]
-            [MinLength(6)]
             public string Password { get; set; } = "";
         }
 
@@ -69,7 +68,11 @@ namespace AspNetApiMonolithSample.Api.Controllers
             }
             else
             {
-                throw new ValidationError(result.Errors.Select(e => e.Description).ToList());
+                throw new ValidationError(result.Errors.Select(e => new ValidationErrorMessage()
+                {
+                    Code = e.Code,
+                    Message = e.Description
+                }).ToArray());
             }
         }
 
