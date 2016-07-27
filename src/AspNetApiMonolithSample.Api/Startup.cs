@@ -216,14 +216,30 @@ namespace AspNetApiMonolithSample.Api
                 .AddDefaultTokenProviders();
 
             var openIdDict = services.AddOpenIddict<User, AppDbContext>()
-                .SetTokenEndpointPath("/OpenId/token")
-                .SetAuthorizationEndpointPath("/OpenId/Authorize")
-                .SetLogoutEndpointPath("/OpenId/Logout")
+                .EnableAuthorizationEndpoint("/OpenId/Authorize")
+                .EnableLogoutEndpoint("/OpenId/Logout")
+                .AllowImplicitFlow()
                 .UseJsonWebTokens();
 
             if (env.IsDevelopment())
             {
-                openIdDict.DisableHttpsRequirement();
+                openIdDict
+                    .AddEphemeralSigningKey()
+                    .DisableHttpsRequirement();
+            } else
+            {
+                // On production, using a X.509 certificate stored in the machine store is recommended.
+                // You can generate a self-signed certificate using Pluralsight's self-cert utility:
+                // https://s3.amazonaws.com/pluralsight-free/keith-brown/samples/SelfCert.zip
+                // 
+                // openIdDict
+                //     .AddSigningCertificate("7D2A741FE34CC2C7369237A5F2078988E17A6A75");
+
+                // Alternatively, you can also store the certificate as an embedded .pfx resource
+                // directly in this assembly or in a file published alongside this project:
+                // 
+                // openIdDict
+                //     .AddSigningCertificate(Stream stream, string password);
             }
 
             services.AddSwaggerGen(opts =>
