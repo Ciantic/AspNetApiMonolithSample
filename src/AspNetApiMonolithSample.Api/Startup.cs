@@ -226,20 +226,14 @@ namespace AspNetApiMonolithSample.Api
                 openIdDict
                     .AddEphemeralSigningKey()
                     .DisableHttpsRequirement();
-            } else
+            }
+            else
             {
                 // On production, using a X.509 certificate stored in the machine store is recommended.
                 // You can generate a self-signed certificate using Pluralsight's self-cert utility:
                 // https://s3.amazonaws.com/pluralsight-free/keith-brown/samples/SelfCert.zip
-                // 
-                // openIdDict
-                //     .AddSigningCertificate("7D2A741FE34CC2C7369237A5F2078988E17A6A75");
-
-                // Alternatively, you can also store the certificate as an embedded .pfx resource
-                // directly in this assembly or in a file published alongside this project:
-                // 
-                // openIdDict
-                //     .AddSigningCertificate(Stream stream, string password);
+                openIdDict
+                    .AddSigningCertificate(Configuration.GetOrFail("OpenId:SigningCertificateThumbprint"));
             }
 
             services.AddSwaggerGen(opts =>
