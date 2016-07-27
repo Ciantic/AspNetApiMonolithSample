@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AspNetApiMonolithSample.Api.Utils;
 
 namespace AspNetApiMonolithSample.Api.Services
 {
@@ -62,53 +63,11 @@ namespace AspNetApiMonolithSample.Api.Services
                 await appDbContext.SaveChangesAsync();
             }
 
-            await Task.Run(() =>
-            {
-                StartProcessQueue();
-            }).ConfigureAwait(false);
-            
+            _taskQueue.Queue(ProcessQueue);
+            _taskQueue.ProcessBackground();
         }
 
-        private bool _hasInQueue = false;
-        private Task _processingQueue = Task.CompletedTask;
-        private object _processingQueueLock = new object();
-
-        /// <summary>
-        /// Start processing the queue
-        /// </summary>
-        private void StartProcessQueue()
-        {
-            lock (_processingQueueLock)
-            {
-                if (_hasInQueue)
-                {
-                    return;
-                }
-                _hasInQueue = true;
-            }
-            _processingQueue.ContinueWith(t1 =>
-            {
-                lock (_processingQueueLock)
-                {
-                    _hasInQueue = true;
-                    _processingQueue = ProcessQueue()
-                        .ContinueWith(t2 =>
-                            {
-                                var logger = _services.GetService<ILogger<EmailService>>();
-                                logger.LogError($"Unhandled error during processing email queue: {t2.Exception.Message}", t2.Exception);
-
-                            }, TaskContinuationOptions.OnlyOnFaulted)
-                        .ContinueWith(t3 =>
-                            {
-                                lock (_processingQueueLock)
-                                {
-                                    _hasInQueue = false;
-                                }
-                            });
-                }
-                    
-            });
-        }
+        private TaskQueue _taskQueue = new TaskQueue(1, 2);
 
         /// <summary>
         /// Processes the stored email queue
@@ -148,9 +107,7 @@ namespace AspNetApiMonolithSample.Api.Services
                 catch (DbUpdateConcurrencyException) {}
 
                 await ProcessSend(appDbContext, logger, processGuid);
-
             }
-
         }
 
         /// <summary>
