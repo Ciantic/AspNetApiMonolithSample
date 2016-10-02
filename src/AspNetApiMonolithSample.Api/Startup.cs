@@ -39,7 +39,7 @@ namespace AspNetApiMonolithSample.Api
     {
         public string[] Origins { get; set; } = new string[] { };
     }
-
+    
     /// <summary>
     /// Snippets of HTML to inject to the various pages, purpose is to provide branding
     /// through external snippets of HTML/CSS/JavaScript instead writing it in the API.
@@ -97,7 +97,7 @@ namespace AspNetApiMonolithSample.Api
         /// Development time Sqlite connection
         /// </summary>
         private SqliteConnection inMemorySqliteConnection;
-
+        
         private readonly IConfigurationRoot Configuration;
 
         private readonly IHostingEnvironment env;
@@ -127,12 +127,17 @@ namespace AspNetApiMonolithSample.Api
         private static Task redirectOnlyOpenId(CookieRedirectContext ctx) {
             if (ctx.Request.Path.StartsWithSegments("/OpenId"))
             {
-                var request = ctx.HttpContext.GetOpenIdConnectRequest();
-                if (request != null && request.Display != null)
+                String display = "";
+                if (ctx.Request.Query.ContainsKey("display"))
+                {
+                    display = ctx.Request.Query["display"].ToString();
+                }
+
+                if (display != "")
                 {
                     ctx.Response.Redirect(QueryHelpers.AddQueryString(ctx.RedirectUri, new Dictionary<string, string>
                     {
-                        { "display", request.Display }
+                        { "display", display }
                     }));
                 } else
                 {
@@ -170,7 +175,7 @@ namespace AspNetApiMonolithSample.Api
             // Add database in the application
             services.AddDbContext<AppDbContext>(options =>
             {
-                if (env.IsDevelopment())
+                 if (env.IsDevelopment())
                 {
                     inMemorySqliteConnection = new SqliteConnection("Data Source=:memory:");
                     inMemorySqliteConnection.Open();

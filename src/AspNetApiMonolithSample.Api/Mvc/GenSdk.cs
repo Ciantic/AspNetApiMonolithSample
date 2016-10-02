@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -120,7 +121,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
             { typeof(sbyte), "string" },
             { typeof(byte[]), "string" },
             { typeof(sbyte[]), "string" },
-            { typeof(bool), "string" },
+            { typeof(bool), "boolean" },
             { typeof(DateTime), "string" },
             { typeof(DateTimeOffset), "string" },
             { typeof(Guid), "string" },
@@ -138,7 +139,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
         public string Indent { get; set; } = "    ";
         public string OutputFile { get; set; } = "Api.ts";
         public string ApiRootFormat { get; set; } = "export const Api = {apiRoot};";
-        public string ApiRequestFunctionFormat { get; set; } = "request<{resultType}>(\"{relativePath}\", \"{method}\", {bodyParam})";
+        public string ApiRequestFunctionFormat { get; set; } = "request<{resultType}>(\"{relativePath}\", \"{method}\", {bodyParam}, {formParam})";
         public string ApiFunctionFormat { get; set; } = "({inputParams}) =>\r\n{indent}{requestFunction}";
         public string ApiErrorsFormat { get; set; } = "export interface ApiErrors {\r\n{indent}{apiErrors}\r\n}";
         public string ApiErrorFunctionFormat { get; set; } = "onError<T>(this: T, errorCode: \"{errorName}\", cb: (data: {dataType}) => void): T;";
@@ -218,7 +219,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
             return res.ToString();
         }
 
-        public string GetApiRequestFunctionFormat(string relativePath, string method, string bodyParam, string resultType)
+        public string GetApiRequestFunctionFormat(string relativePath, string method, string bodyParam, string formParam, string resultType)
         {
             var res = new StringBuilder(ApiRequestFunctionFormat);
             foreach (var kv in new Dictionary<string, string>()
@@ -228,6 +229,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
                 { "{method}", method },
                 { "{resultType}", resultType },
                 { "{bodyParam}", bodyParam },
+                { "{formParam}", formParam },
             })
             {
                 res.Replace(kv.Key, kv.Value);
@@ -279,24 +281,38 @@ namespace AspNetApiMonolithSample.Api.Mvc
                     apiFunction.HttpMethod = act.HttpMethod;
                     apiFunction.RelativePath = act.RelativePath;
 
-                    // Supports at most one parameter, the [FromBody]
+                    // Supports at most one parameter
                     if (act.ParameterDescriptions.Count > 1)
                     {
-                        continue;
+                        var p = act.ParameterDescriptions.First();
+                        if (p.Source.Id.ToLower() == "form")
+                        {
+                            apiFunction.InputFormType = typeof(object);
+                        } else
+                        {
+                            continue;
+                        }
                     }
 
-                    // Works only with [FromBody] param for now
+                    // [FromBody] or [FromForm]
                     if (act.ParameterDescriptions.Count == 1) { 
                         var p = act.ParameterDescriptions.First();
 
-                        if (p.Source.Id.ToLower() != "body")
+                        if (p.Source.Id.ToLower() == "body")
+                        {
+                            _tsGen.Generate(p.Type);
+                            apiFunction.InputBodyType = p.Type;
+                        } else
                         {
                             _logger.LogWarning($"Skipping SDK generation for {act.ActionDescriptor.DisplayName}. Only [FromBody] parameters are supported.");
                             continue;
                         }
-                        _tsGen.Generate(p.Type);
-                        // registry.GetOrRegister(p.Type);
-                        apiFunction.InputBodyType = p.Type;
+
+                        if (p.Source.Id.ToLower() == "form")
+                        {
+                            _tsGen.Generate(p.Type);
+                            apiFunction.InputFormType = p.Type;    
+                        }
                     }
 
                     // Get result type
@@ -448,12 +464,17 @@ namespace AspNetApiMonolithSample.Api.Mvc
             public string HttpMethod { get; set; } = "";
             public string RelativePath { get; set; } = "";
             public Type InputBodyType { get; set; }
+            public Type InputFormType { get; set; }
             public Type ResultType { get; set; }
             public IDictionary<string, IItem> Children { get; set; } = new Dictionary<string, IItem>();
             public string GenTypescript(GenSdkOptions opts, TypescriptGenerator tsGen)
             {
                 var inputParams = new List<string>();
                 var outputValue = "void";
+                if (InputFormType != null)
+                {
+                    inputParams.Add($"form: {tsGen.Generate(InputFormType)}");
+                }
                 if (InputBodyType != null)
                 {
                     inputParams.Add($"body: {tsGen.Generate(InputBodyType)}");
@@ -463,7 +484,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
                     outputValue = tsGen.Generate(ResultType);
                 }
                 var resultType = outputValue;
-                var requestFunction = opts.GetApiRequestFunctionFormat(RelativePath, HttpMethod, InputBodyType != null ? "body" : "null", resultType);
+                var requestFunction = opts.GetApiRequestFunctionFormat(RelativePath, HttpMethod, InputBodyType != null ? "body" : "null", InputFormType != null ? "form" : "null", resultType);
 
                 return indentAllButFirstLine(opts.GetApiFunctionFormat(string.Join(", ", inputParams), resultType, requestFunction));
                 // return indentAllButFirstLine($"({string.Join(", ", inputParams)}): {outputFormat} =>\r\n{opts.Indent}{requestFormat}");

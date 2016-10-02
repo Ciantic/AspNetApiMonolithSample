@@ -95,12 +95,39 @@ namespace AspNetApiMonolithSample.Api.Mvc
             };
         }
 
-        public ValidationError(IEnumerable<ValidationErrorMessage> general)
+        public ValidationError(IEnumerable<ValidationErrorMessage> general = null, Dictionary<string, ValidationErrorMessage[]> fields = null)
         {
             StatusCode = StatusCodes.Status400BadRequest;
             JsonData = new ValidationErrorData()
             {
-                General = general.ToArray()
+                General = (general ?? new List<ValidationErrorMessage>()).ToArray(),
+                Fields = (fields ?? new Dictionary<string, ValidationErrorMessage[]>()),
+            };
+        }
+
+        public ValidationError(String fieldName, ValidationErrorMessage message)
+        {
+            StatusCode = StatusCodes.Status400BadRequest;
+            JsonData = new ValidationErrorData()
+            {
+                General = new List<ValidationErrorMessage>().ToArray(),
+                Fields = new Dictionary<string, ValidationErrorMessage[]>()
+                {
+                    { fieldName, new ValidationErrorMessage[] { message } }
+                },
+            };
+        }
+
+        public ValidationError(String fieldName, IEnumerable<ValidationErrorMessage> messages)
+        {
+            StatusCode = StatusCodes.Status400BadRequest;
+            JsonData = new ValidationErrorData()
+            {
+                General = new List<ValidationErrorMessage>().ToArray(),
+                Fields = new Dictionary<string, ValidationErrorMessage[]>()
+                {
+                    { fieldName, messages.ToArray() }
+                },
             };
         }
     }

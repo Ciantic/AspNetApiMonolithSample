@@ -195,9 +195,14 @@ namespace AspNetApiMonolithSample.Api.Controllers
         /// <summary>
         /// Authorize OpenId request, shows the accept or deny dialog if applicable
         /// </summary>
-        [Authorize(Policy = "COOKIES"), HttpGet("[action]"), HttpPost("[action]")]
-        public virtual async Task<IActionResult> Authorize()
+        [Authorize(Policy="COOKIES"), HttpGet("[action]"), HttpPost("[action]")]
+        public virtual async Task<IActionResult> Authorize([RequestUser] User requestUser,
+            [FromQuery] string returnUrl = "")
         {
+            if (requestUser == null)
+            {
+                return Redirect("/OpenId/Login?ReturnUrl=" + returnUrl);
+            }
             // Identity cookie that is not valid anymore (e.g. deleted user), still gets through 
             // the [Authorize] attribute by design. Check that user actually exists.
             var user = await _userManager.GetUserAsync(HttpContext.User);
@@ -226,7 +231,8 @@ namespace AspNetApiMonolithSample.Api.Controllers
 
             var appName = await _applicationManager.GetDisplayNameAsync(application);
             var inputs = "";
-            foreach (var item in request.Parameters)
+            var hiddenParams = new Dictionary<string, string> { { "request_id", request.RequestId } };
+            foreach (var item in hiddenParams)
             {
                 var key = WebUtility.HtmlEncode(item.Key);
                 var value = WebUtility.HtmlEncode(item.Value);
@@ -236,13 +242,13 @@ namespace AspNetApiMonolithSample.Api.Controllers
             // TODO: Anti forgery token for Accept and Deny
             var data = JsonConvert.SerializeObject(new
             {
-                Display = request.Display,
+                Display = request.GetParameter("display"),
                 Scopes = request.GetScopes().ToList(),
                 FormMethod = "POST",
                 FormActionAccept = Url.Action(nameof(Accept)),
                 FormActionDeny = Url.Action(nameof(Deny)),
                 ApplicationName = appName,
-                FormData = request.Parameters
+                FormData = hiddenParams
             }, _mvcJsonOptions.SerializerSettings);
 
             return new ContentResult()
