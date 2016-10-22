@@ -4,6 +4,7 @@ using AspNetApiMonolithSample.Api.Models;
 using AspNetApiMonolithSample.Api.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using AspNetApiMonolithSample.Api.Mvc;
 
 namespace AspNetApiMonolithSample.Api.Controllers.Frontend
 {
@@ -21,6 +22,12 @@ namespace AspNetApiMonolithSample.Api.Controllers.Frontend
         public class GetByNameAction
         {
             public string Name { get; set; } = "";
+        }
+
+        [HttpPost("[action]")]
+        public int GetOwnedThingie([RequestClaim(AspNetApiMonolithSampleConstants.Claims.OwnsThingie)] int thingieId)
+        {
+            return thingieId;
         }
 
         [HttpPost("[action]")]
