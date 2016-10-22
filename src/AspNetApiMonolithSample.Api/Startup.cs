@@ -35,7 +35,7 @@ namespace AspNetApiMonolithSample.Api
     /// 
     /// Setting in the appsettings.json
     /// </summary>
-    public class Cors
+    public class CorsConfiguration
     {
         public string[] Origins { get; set; } = new string[] { };
     }
@@ -46,7 +46,7 @@ namespace AspNetApiMonolithSample.Api
     /// 
     /// Setting in the appsettings.json
     /// </summary>
-    public class UiBrandingHtml
+    public class UiBrandingHtmlConfiguration
     {
         /// <summary>
         /// Login page
@@ -70,6 +70,22 @@ namespace AspNetApiMonolithSample.Api
     }
 
     /// <summary>
+    /// Jwt appsettings.json configuration
+    /// </summary>
+    public class JwtConfiguration
+    {
+        /// <summary>
+        /// Audience of jwt bearer authentication, this should match the resource
+        /// </summary>
+        public string Audience { get; set; }
+
+        /// <summary>
+        /// Authority of jwt bearer authentication
+        /// </summary>
+        public string Authority { get; set; }
+    }
+
+    /// <summary>
     /// Front end urls which user is redirected to deal with various parts of the 
     /// application.
     /// 
@@ -87,7 +103,12 @@ namespace AspNetApiMonolithSample.Api
         /// </summary>
         public string RegisterConfirmEmail { get; set; } = "";
     }
-    
+
+    public class AspNetApiMonolithSampleConstants
+    {
+        public const string API_USER_SCOPE = "api_user";
+    }
+
     /// <summary>
     /// Startup class for Asp Net Core
     /// </summary>
@@ -199,7 +220,7 @@ namespace AspNetApiMonolithSample.Api
                     opts.AddPolicy("COOKIES", opts.DefaultPolicy);
                     opts.DefaultPolicy = new AuthorizationPolicyBuilder()
                         .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, "api_user")
+                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, AspNetApiMonolithSampleConstants.API_USER_SCOPE)
                         .Build();
                 })
                 .AddDataAnnotations()
@@ -258,7 +279,7 @@ namespace AspNetApiMonolithSample.Api
                     TokenUrl = Configuration.GetOrFail("Api:Url") + "OpenId/token",
                     Scopes = new Dictionary<string, string>
                     {
-                        { "api_user", "API user" }
+                        { AspNetApiMonolithSampleConstants.API_USER_SCOPE, "API user" }
                     }
                 });
             });
@@ -282,9 +303,10 @@ namespace AspNetApiMonolithSample.Api
                 };
             });
 
+            services.Configure<JwtConfiguration>(Configuration.GetSection("Jwt"));
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
-            services.Configure<Cors>(Configuration.GetSection("Cors"));
-            services.Configure<UiBrandingHtml>(Configuration.GetSection("UiBrandingHtml"));
+            services.Configure<CorsConfiguration>(Configuration.GetSection("Cors"));
+            services.Configure<UiBrandingHtmlConfiguration>(Configuration.GetSection("UiBrandingHtml"));
             services.Configure<FrontendUrls>(Configuration.GetSection("FrontendUrls"));
 
             if (env.IsDevelopment())
@@ -325,7 +347,7 @@ namespace AspNetApiMonolithSample.Api
                 }
                 else
                 {
-                    var cors = app.ApplicationServices.GetService<IOptions<Cors>>().Value;
+                    var cors = app.ApplicationServices.GetService<IOptions<CorsConfiguration>>().Value;
                     builder.WithOrigins(cors.Origins).AllowAnyMethod().AllowAnyHeader()
                         .WithExposedHeaders("WwW-Authenticate"); // For JWT Bearer
                 }

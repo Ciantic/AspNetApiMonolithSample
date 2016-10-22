@@ -16,10 +16,10 @@ namespace AspNetApiMonolithSample.Api.Controllers
     public class ErrorController : ControllerBase
     {
         private readonly MvcJsonOptions _mvcJsonOptions;
-        private readonly UiBrandingHtml _brandingHtml;
+        private readonly UiBrandingHtmlConfiguration _brandingHtml;
 
         public ErrorController(
-            IOptions<UiBrandingHtml> brandingHtml, 
+            IOptions<UiBrandingHtmlConfiguration> brandingHtml, 
             IOptions<MvcJsonOptions> mvcJsonOptions
         )
         {

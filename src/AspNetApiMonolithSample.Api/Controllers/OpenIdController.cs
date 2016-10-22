@@ -36,15 +36,17 @@ namespace AspNetApiMonolithSample.Api.Controllers
         private readonly OpenIddictApplicationManager<OpenIddictApplication> _applicationManager;
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
-        private readonly UiBrandingHtml _brandingHtml;
+        private readonly UiBrandingHtmlConfiguration _brandingHtml;
         private readonly IOptions<Dictionary<string, OpenIddictApplication>> _officialApplications;
         private readonly MvcJsonOptions _mvcJsonOptions;
+        private readonly JwtConfiguration _jwtConfiguration;
 
         public OpenIdController(
             ILoggerFactory loggerFactory,
-            IOptions<UiBrandingHtml> brandingHtml,
+            IOptions<UiBrandingHtmlConfiguration> brandingHtml,
             IOptions<Dictionary<string, OpenIddictApplication>> officialApplications,
             IOptions<MvcJsonOptions> mvcJsonOptions,
+            IOptions<JwtConfiguration> jwtConfiguration,
             OpenIddictApplicationManager<OpenIddictApplication> applicationManager,
             SignInManager<User> signInManager,
             UserManager<User> userManager)
@@ -56,6 +58,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             _brandingHtml = brandingHtml.Value;
             _officialApplications = officialApplications;
             _mvcJsonOptions = mvcJsonOptions.Value;
+            _jwtConfiguration = jwtConfiguration.Value;
         }
 
         /// <summary>
@@ -337,12 +340,14 @@ namespace AspNetApiMonolithSample.Api.Controllers
                 OpenIdConnectConstants.Scopes.Email,
                 OpenIdConnectConstants.Scopes.Profile,
                 OpenIdConnectConstants.Scopes.OfflineAccess,
+                AspNetApiMonolithSampleConstants.API_USER_SCOPE,
                 OpenIddictConstants.Scopes.Roles
+
             }.Intersect(request.GetScopes()));
 
             ticket.SetResources(new string[]
             {
-                "http://localhost:5000"
+                _jwtConfiguration.Audience
             });
 
             return ticket;
