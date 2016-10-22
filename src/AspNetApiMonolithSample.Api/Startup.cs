@@ -220,7 +220,7 @@ namespace AspNetApiMonolithSample.Api
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
 
-            var openIdDict = services.AddOpenIddict<User, AppDbContext>()
+            var openIdDict = services.AddOpenIddict<AppDbContext>()
                 .EnableAuthorizationEndpoint("/OpenId/Authorize")
                 .EnableLogoutEndpoint("/OpenId/Logout")
                 .AllowImplicitFlow()

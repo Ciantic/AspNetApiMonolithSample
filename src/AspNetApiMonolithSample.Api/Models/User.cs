@@ -3,7 +3,7 @@ using OpenIddict;
 
 namespace AspNetApiMonolithSample.Api.Models
 {
-    public class User : OpenIddictUser
+    public class User : IdentityUser
     {
         public string LanguageCode { get; set; } = "";
         public string FistName { get; set; } = "";
