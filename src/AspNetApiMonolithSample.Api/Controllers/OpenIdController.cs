@@ -318,7 +318,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
             // cache user's ownership of the Thingie
             if (principal.Identity.IsAuthenticated && principal.Identity is ClaimsIdentity)
             {
-                (principal.Identity as ClaimsIdentity).AddClaim(new Claim("ownsThingieId", "12345"));
+                (principal.Identity as ClaimsIdentity).AddClaim(new Claim(AspNetApiMonolithSampleConstants.Claims.OwnsThingie, "12345"));
             }
 
             // Note: by default, claims are NOT automatically included in the access and identity tokens.

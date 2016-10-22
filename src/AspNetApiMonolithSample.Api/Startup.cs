@@ -110,6 +110,11 @@ namespace AspNetApiMonolithSample.Api
         {
             public const string ApiUser = "api_user";
         }
+
+        static public class Claims
+        {
+            public const string OwnsThingie = "ownsThingieId";
+        }
     }
 
     /// <summary>
