@@ -104,9 +104,12 @@ namespace AspNetApiMonolithSample.Api
         public string RegisterConfirmEmail { get; set; } = "";
     }
 
-    public class AspNetApiMonolithSampleConstants
+    static public class AspNetApiMonolithSampleConstants
     {
-        public const string API_USER_SCOPE = "api_user";
+        static public class Scopes
+        {
+            public const string ApiUser = "api_user";
+        }
     }
 
     /// <summary>
@@ -220,7 +223,7 @@ namespace AspNetApiMonolithSample.Api
                     opts.AddPolicy("COOKIES", opts.DefaultPolicy);
                     opts.DefaultPolicy = new AuthorizationPolicyBuilder()
                         .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, AspNetApiMonolithSampleConstants.API_USER_SCOPE)
+                        .RequireClaim(OpenIdConnectConstants.Claims.Scope, AspNetApiMonolithSampleConstants.Scopes.ApiUser)
                         .Build();
                 })
                 .AddDataAnnotations()
@@ -279,7 +282,7 @@ namespace AspNetApiMonolithSample.Api
                     TokenUrl = Configuration.GetOrFail("Api:Url") + "OpenId/token",
                     Scopes = new Dictionary<string, string>
                     {
-                        { AspNetApiMonolithSampleConstants.API_USER_SCOPE, "API user" }
+                        { AspNetApiMonolithSampleConstants.Scopes.ApiUser, "API user" }
                     }
                 });
             });

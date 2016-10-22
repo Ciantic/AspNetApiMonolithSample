@@ -340,7 +340,7 @@ namespace AspNetApiMonolithSample.Api.Controllers
                 OpenIdConnectConstants.Scopes.Email,
                 OpenIdConnectConstants.Scopes.Profile,
                 OpenIdConnectConstants.Scopes.OfflineAccess,
-                AspNetApiMonolithSampleConstants.API_USER_SCOPE,
+                AspNetApiMonolithSampleConstants.Scopes.ApiUser,
                 OpenIddictConstants.Scopes.Roles
 
             }.Intersect(request.GetScopes()));
