@@ -29,10 +29,10 @@ namespace AspNetApiMonolithSample.Api.Services
         private readonly IEmailSender _emailSender;
         private readonly EmailPlaceholders _emailPlaceholders;
         private readonly IHostingEnvironment _env;
-        private readonly FrontendUrls _frontendUrls;
+        private readonly FrontendUrlsConfiguration _frontendUrls;
 
         public EmailService(
-            IOptions<FrontendUrls> frontendUrlsOpts,
+            IOptions<FrontendUrlsConfiguration> frontendUrlsOpts,
             IEmailSender emailSender,
             ILogger<EmailService> logger,
             IOptions<EmailPlaceholders> emailPlaceholdersOpts,

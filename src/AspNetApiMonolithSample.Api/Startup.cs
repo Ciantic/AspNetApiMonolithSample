@@ -91,7 +91,7 @@ namespace AspNetApiMonolithSample.Api
     /// 
     /// Setting in the appsettings.json
     /// </summary>
-    public class FrontendUrls
+    public class FrontendUrlsConfiguration
     {
         /// <summary>
         /// When user resets their password they will be emailed this link to reset the password
@@ -310,7 +310,7 @@ namespace AspNetApiMonolithSample.Api
             services.Configure<Dictionary<string, OpenIddictApplication>>(Configuration.GetSection("Applications"));
             services.Configure<CorsConfiguration>(Configuration.GetSection("Cors"));
             services.Configure<UiBrandingHtmlConfiguration>(Configuration.GetSection("UiBrandingHtml"));
-            services.Configure<FrontendUrls>(Configuration.GetSection("FrontendUrls"));
+            services.Configure<FrontendUrlsConfiguration>(Configuration.GetSection("FrontendUrls"));
 
             if (env.IsDevelopment())
             {
