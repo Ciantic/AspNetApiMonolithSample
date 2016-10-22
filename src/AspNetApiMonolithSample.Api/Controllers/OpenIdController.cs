@@ -314,6 +314,13 @@ namespace AspNetApiMonolithSample.Api.Controllers
             // will be used to create an id_token, a token or a code.
             var principal = await _signInManager.CreateUserPrincipalAsync(user);
 
+            // Add your application specific claims, e.g. if user owns a Thingie, this is a good way to
+            // cache user's ownership of the Thingie
+            if (principal.Identity.IsAuthenticated && principal.Identity is ClaimsIdentity)
+            {
+                (principal.Identity as ClaimsIdentity).AddClaim(new Claim("ownsThingieId", "12345"));
+            }
+
             // Note: by default, claims are NOT automatically included in the access and identity tokens.
             // To allow OpenIddict to serialize them, you must attach them a destination, that specifies
             // whether they should be included in access tokens, in identity tokens or in both.
