@@ -340,9 +340,8 @@ namespace AspNetApiMonolithSample.Api.Controllers
                 OpenIdConnectConstants.Scopes.Email,
                 OpenIdConnectConstants.Scopes.Profile,
                 OpenIdConnectConstants.Scopes.OfflineAccess,
+                OpenIddictConstants.Scopes.Roles,
                 AspNetApiMonolithSampleConstants.Scopes.ApiUser,
-                OpenIddictConstants.Scopes.Roles
-
             }.Intersect(request.GetScopes()));
 
             ticket.SetResources(new string[]
