@@ -55,7 +55,7 @@ namespace AspNetApiMonolithSample.Api.Mvc
     }
 
     /// <summary>
-    /// Get the request user from UserManager automatically
+    /// Get the request user claim value
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property, AllowMultiple = true, Inherited = true)]
     public class RequestClaimAttribute : Attribute, IBinderTypeProviderMetadata
