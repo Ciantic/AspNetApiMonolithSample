@@ -258,7 +258,9 @@ namespace AspNetApiMonolithSample.Api
             if (env.IsDevelopment())
             {
                 openIdDict
-                    .AddEphemeralSigningKey()
+                    .AddSigningCertificate(File.Open("test.pfx", FileMode.Open), password: "test")
+                    // .AddEphemeralSigningKey() use ephemeral signin key if you
+                    // want to login each time as you restart
                     .DisableHttpsRequirement();
             }
             else
