@@ -54,6 +54,7 @@
     "emitEntryPoint": true,
     "preserveCompilationContext": true,
     "copyToOutput": [
+      "test.pfx",
       "appsettings.json",
       "EmailTemplates/**"
     ]
@@ -66,6 +67,7 @@
   },
   "publishOptions": {
     "include": [
+      "test.pfx",
       "EmailTemplates",
       "wwwroot",
       "appsettings.json",
